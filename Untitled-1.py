@@ -47,12 +47,13 @@ try:
             valor_celula = re.sub(r'[^\w\s|]', '', valor_celula)
             # Remove números e a substring "(CNPJ)"
             valor_celula = re.sub(r'\d+|CNPJ', '', valor_celula, flags=re.IGNORECASE)
+            valor_celula = valor_celula.strip()
         
         linha[nome_coluna] = valor_celula
     dados_das_linhas.append(linha)
     
     # Imprime o valor após o tratamento dos caracteres especiais
-    valor_tratado = linha.get(nome_coluna_tratamento, '')  # Usando .get() para tratar chaves ausentes
+    valor_tratado = linha.get(nome_coluna_tratamento)  # Usando .get() para tratar chaves ausentes
     print(f"Resultado após tratamento ({nome_coluna_tratamento}): {valor_tratado}")
 
     db_connection = mysql.connector.connect(**db_config)
@@ -68,8 +69,9 @@ try:
         print(f"Nenhum resultado encontrado para '{names_to_search}'")
     
     for name in names_to_search:
-        query = f"SELECT `Cod Escritorio` FROM termosdistribuicao WHERE `Cod Escritorio` = '{name.strip()}'"
+        query = f"SELECT `Cod Escritorio` FROM clientesdistribuicao.termosdistribuicao WHERE `Cod Escritorio` = '{name.strip()}'"
         db_cursor.execute(query)
+        result = db_cursor.fetchone()
     
         # Consumir todos os resultados da consulta anterior (se houver)
         for _ in db_cursor.fetchall():
@@ -90,7 +92,7 @@ try:
     doc = Document()
 
 # Adiciona informações ao documento
-    doc.add_heading({   codigo_escritorio}, level=0,)
+    doc.add_heading( 'distribuição', level=0,)
 
 # Corpo do e-mail
     email_template = (
