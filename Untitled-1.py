@@ -18,7 +18,7 @@ data_formatada = data_do_dia_anterior.strftime('%Y%m%d')
 nomeDoArquivo = (data_formatada + "-" + "impressao.xls")
 nomeDoArquivoDocx = (data_formatada + "-" + "distribuição.docx")
 
-caminho_arquivo = r"C:\Users\pedro\OneDrive - LIG CONTATO DIÁRIO FORENSE\DISTRIBUIÇÃO\DISTRIBUIÇÕES\\" + nomeDoArquivo
+caminho_arquivo = r"C:\Users\pedro\Documents\\" + nomeDoArquivo
 
 print("Caminho do arquivo:", caminho_arquivo)
 
@@ -64,35 +64,44 @@ try:
     for nome_pesquisa in nomes_pesquisa:
      names_to_search = [nome_pesquisa]
      
-    if '|' in nome_pesquisa:
-        names_to_search = nome_pesquisa.split('|')
-        print(f"Nenhum resultado encontrado para '{names_to_search}'")
     
     for name in names_to_search:
-        query = f"SELECT `Cod Escritorio` FROM clientesdistribuicao.termosdistribuicao WHERE `Cod Escritorio` = '{name.strip()}'"
+        query = f"SELECT `Cod Escritorio` FROM clientesdistribuicao.termosdistribuicao where `Nome Principal` = '{name.strip()}'"
         db_cursor.execute(query)
         result = db_cursor.fetchone()
     
+        print (result)
+
         # Consumir todos os resultados da consulta anterior (se houver)
-        for _ in db_cursor.fetchall():
-            pass
+        for _ in result:
+         pass
     
-        resultado_query = db_cursor.fetchone()
+        resultado_query = result
     
         if resultado_query:
             codigo_escritorio = resultado_query[0]
             print(f"Resultado da pesquisa para '{name.strip()}': Código de Escritório = {codigo_escritorio}")
+            codigo_escritorioSTG = str(codigo_escritorio)
             break  # Se encontrado, não é necessário continuar procurando
-    else:
-        print(f"Nenhum resultado encontrado para '{nome_pesquisa}'")
+        else:
+            print(f"Nenhum resultado encontrado para '{name.strip()}'")
 
-    db_cursor.close()  # Feche o cursor após cada consulta
+    names_to_search_Client = resultado_query
 
+    for nameClient in names_to_search_Client:
+       query = f"SELECT `Nome do escritorio` FROM clientesdistribuicao.clientes where `Cod Escritorio` = '{nameClient}'"
+       db_cursor.execute(query)
+       resultClient = db_cursor.fetchone()
+
+       print(resultClient)
+
+    TextCodClient = (f"Codigo Escritorio:  {codigo_escritorioSTG}")
   #cria o doc word
     doc = Document()
 
 # Adiciona informações ao documento
-    doc.add_heading( 'distribuição', level=0,)
+    doc.add_heading ( resultClient, level =0)
+    doc.add_heading( TextCodClient, level=0,)
 
 # Corpo do e-mail
     email_template = (
@@ -127,7 +136,7 @@ try:
 
     doc.add_paragraph(email_texto)
 
-    caminho_arquivo_docx = r"C:\Users\pedro\OneDrive - LIG CONTATO DIÁRIO FORENSE\DISTRIBUIÇÃO\ARQUIVOS WORD DISTRIBUIÇÕES\\" + nomeDoArquivoDocx
+    caminho_arquivo_docx = r"C:\Users\pedro\Documents\Nova pasta\\" + nomeDoArquivoDocx
     doc.save(caminho_arquivo_docx)
 
    
