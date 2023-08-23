@@ -18,7 +18,7 @@ data_formatada = data_do_dia_anterior.strftime('%Y%m%d')
 nomeDoArquivo = (data_formatada + "-" + "impressao.xls")
 nomeDoArquivoDocx = (data_formatada + "-" + "distribuição.docx")
 
-caminho_arquivo = r"C:\Users\pedro\Documents\\" + nomeDoArquivo
+caminho_arquivo = r"C:\Users\pedro\Music\\" + nomeDoArquivo
 
 print("Caminho do arquivo:", caminho_arquivo)
 
@@ -70,9 +70,7 @@ try:
         db_cursor.execute(query)
         result = db_cursor.fetchone()
     
-        print (result)
-
-        # Consumir todos os resultados da consulta anterior (se houver)
+            # Consumir todos os resultados da consulta anterior (se houver)
         for _ in result:
          pass
     
@@ -92,21 +90,21 @@ try:
        query = f"SELECT `Nome do escritorio` FROM clientesdistribuicao.clientes where `Cod Escritorio` = '{nameClient}'"
        db_cursor.execute(query)
        resultClient = db_cursor.fetchone()
+    element_to_process = resultClient[0]  # Acesse o elemento desejado da tupla
+    resultClient_modified = re.sub(r'[^\w\s|]', '', element_to_process)
 
-       print(resultClient)
-
-    TextCodClient = (f"Codigo Escritorio:  {codigo_escritorioSTG}")
-  #cria o doc word
+    #cria o doc word
     doc = Document()
 
+    TextCodClient = (f"Codigo Escritorio:  {codigo_escritorioSTG}")
+
 # Adiciona informações ao documento
-    doc.add_heading ( resultClient, level =0)
-    doc.add_heading( TextCodClient, level=0,)
+    doc.add_heading (resultClient, level =0)
+    doc.add_heading(TextCodClient, level=0,)
 
 # Corpo do e-mail
     email_template = (
-    "Prezado(a),\n\n"
-    "Segue abaixo o relatório de distribuição referente ao dia anterior:\n\n"
+    "Cliente: {resultClient2} \n\n"
     "Detalhes:\n"
     "Data: {data}\n"
     "Dados coletados:\n\n"
@@ -132,11 +130,11 @@ try:
     
 
     email_texto = email_template.format(data=data_do_dia_anterior.strftime('%d/%m/%y'),
-                                    dados=dados_formatados)
+                                    dados=dados_formatados, resultClient2 = resultClient_modified)
 
     doc.add_paragraph(email_texto)
 
-    caminho_arquivo_docx = r"C:\Users\pedro\Documents\Nova pasta\\" + nomeDoArquivoDocx
+    caminho_arquivo_docx = r"C:\Users\pedro\Music\Nova pasta\\" + nomeDoArquivoDocx
     doc.save(caminho_arquivo_docx)
 
    
