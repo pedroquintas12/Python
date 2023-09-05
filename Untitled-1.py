@@ -4,6 +4,7 @@ import pandas as pd
 import re
 from docx import Document
 import mysql.connector
+import os
 from datetime import datetime, timedelta
 
 db_config = {
@@ -13,12 +14,18 @@ db_config = {
     'database': 'clientesdistribuicao'
 }
 
-data_do_dia_anterior = datetime.now() - timedelta(days=1)
-data_formatada = data_do_dia_anterior.strftime('%Y%m%d')
+data_do_dia = datetime.now()
+data_formatada = data_do_dia.strftime('%Y%m%d')
 nomeDoArquivo = (data_formatada + "-" + "impressao.xls")
 nomeDoArquivoDocx = (data_formatada + "-" + "distribuição.docx")
 
-caminho_arquivo = r"C:\Users\pedro\Music\\" + nomeDoArquivo
+caminho_arquivo = r"C:\Users\pedro\OneDrive - LIG CONTATO DIÁRIO FORENSE\DISTRIBUIÇÃO\DISTRIBUIÇÕES\\" + nomeDoArquivo
+
+if not os.path.exists(caminho_arquivo):
+    data_do_dia -= timedelta(days=1)  
+    data_formatada = data_do_dia.strftime('%Y%m%d')
+    nomeDoArquivo = (data_formatada + "-" + "impressao.xls")
+    caminho_arquivo = r"C:\Users\pedro\OneDrive - LIG CONTATO DIÁRIO FORENSE\DISTRIBUIÇÃO\DISTRIBUIÇÕES\\" + nomeDoArquivo
 
 print("Caminho do arquivo:", caminho_arquivo)
 
@@ -44,9 +51,14 @@ try:
         
         if col == 4:  # Se a coluna for a coluna 5
             # Remove todos os caracteres especiais, exceto "|"
-            valor_celula = re.sub(r'[^\w\s|]', '', valor_celula)
+            valor_celula = re.sub(r'[^\w\s| \w\s-]', '', valor_celula)
             # Remove números e a substring "(CNPJ)"
             valor_celula = re.sub(r'\d+|CNPJ', '', valor_celula, flags=re.IGNORECASE)
+            valor_celula = re.sub(r'\d+|LTDA', '', valor_celula, flags=re.IGNORECASE)
+            valor_celula = re.sub(r'\d+|CPF', '', valor_celula, flags=re.IGNORECASE)
+
+            
+
             valor_celula = valor_celula.strip()
         
         linha[nome_coluna] = valor_celula
@@ -66,14 +78,15 @@ try:
      
     
     for name in names_to_search:
-        query = f"SELECT `Cod Escritorio` FROM clientesdistribuicao.termosdistribuicao where `Nome Principal` = '{name.strip()}'"
+        query = f"SELECT `CodEscritorio` FROM clientesdistribuicao.termosdistribuicao where `NomePrincipal` = '{name.strip()}' OR `variacoes` = '{name.strip()}'"
         db_cursor.execute(query)
         result = db_cursor.fetchone()
     
-            # Consumir todos os resultados da consulta anterior (se houver)
-        for _ in result:
-         pass
-    
+        print (name)
+        # Consumir todos os resultados da consulta anterior (se houver)
+        if result is not None:
+            for _ in result:
+                pass
         resultado_query = result
     
         if resultado_query:
@@ -87,7 +100,7 @@ try:
     names_to_search_Client = resultado_query
 
     for nameClient in names_to_search_Client:
-       query = f"SELECT `Nome do escritorio` FROM clientesdistribuicao.clientes where `Cod Escritorio` = '{nameClient}'"
+       query = f"SELECT `Nomedoescritorio` FROM clientesdistribuicao.clientes where `CodigoVSAP` = '{nameClient}'"
        db_cursor.execute(query)
        resultClient = db_cursor.fetchone()
     element_to_process = resultClient[0]  # Acesse o elemento desejado da tupla
@@ -105,12 +118,12 @@ try:
 # Corpo do e-mail
     email_template = (
     "Cliente: {resultClient2} \n\n"
-    "Detalhes:\n"
-    "Data: {data}\n"
     "Dados coletados:\n\n"
     "{dados}\n\n"
     "Atenciosamente,\n"
-    "Lig Contato"
+    "Lig Contato\n\n"
+    "Detalhes:\n"
+    "Data: {data}\n"
 )
 
 # Preencher o corpo do e-mail com os dados capturados
@@ -129,12 +142,12 @@ try:
        
     
 
-    email_texto = email_template.format(data=data_do_dia_anterior.strftime('%d/%m/%y'),
+    email_texto = email_template.format(data=data_do_dia.strftime('%d/%m/%y'),
                                     dados=dados_formatados, resultClient2 = resultClient_modified)
 
     doc.add_paragraph(email_texto)
 
-    caminho_arquivo_docx = r"C:\Users\pedro\Music\Nova pasta\\" + nomeDoArquivoDocx
+    caminho_arquivo_docx = r"C:\Users\pedro\OneDrive - LIG CONTATO DIÁRIO FORENSE\DISTRIBUIÇÃO\ARQUIVOS WORD DISTRIBUIÇÕES\\" + nomeDoArquivoDocx
     doc.save(caminho_arquivo_docx)
 
    
