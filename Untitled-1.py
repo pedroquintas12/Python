@@ -6,6 +6,9 @@ from docx import Document
 import mysql.connector
 import os
 from datetime import datetime, timedelta
+from docx.shared import RGBColor, Pt
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+from docx.enum.table import WD_ALIGN_VERTICAL
 
 db_config = {
     'host': 'localhost',
@@ -26,6 +29,8 @@ if not os.path.exists(caminho_arquivo):
     data_formatada = data_do_dia.strftime('%Y%m%d')
     nomeDoArquivo = (data_formatada + "-" + "impressao.xls")
     caminho_arquivo = r"C:\Users\pedro\OneDrive - LIG CONTATO DIÁRIO FORENSE\DISTRIBUIÇÃO\DISTRIBUIÇÕES\\" + nomeDoArquivo
+    nomeDoArquivoDocx = (data_formatada + "-" + "distribuição.docx")
+
 
 print("Caminho do arquivo:", caminho_arquivo)
 
@@ -45,24 +50,24 @@ try:
 
     for row in range(1, sheet.nrows):  # Começando da segunda linha
         linha = {}
-    for col_idx, col in enumerate(colunas_alvo):
-        valor_celula = sheet.cell_value(row, col)
-        nome_coluna = f'coluna_{col + 1}'
+        for col_idx, col in enumerate(colunas_alvo):
+            valor_celula = sheet.cell_value(row, col)
+            nome_coluna = f'coluna_{col + 1}'
         
-        if col == 4:  # Se a coluna for a coluna 5
+            if col == 4:  # Se a coluna for a coluna 5
             # Remove todos os caracteres especiais, exceto "|"
-            valor_celula = re.sub(r'[^\w\s| \w\s-]', '', valor_celula)
+             valor_celula = re.sub(r'[^\w\s| \w\s-]', '', valor_celula)
             # Remove números e a substring "(CNPJ)"
-            valor_celula = re.sub(r'\d+|CNPJ', '', valor_celula, flags=re.IGNORECASE)
-            valor_celula = re.sub(r'\d+|LTDA', '', valor_celula, flags=re.IGNORECASE)
-            valor_celula = re.sub(r'\d+|CPF', '', valor_celula, flags=re.IGNORECASE)
-
+             valor_celula = re.sub(r'\d+|CNPJ', '', valor_celula, flags=re.IGNORECASE)
+             valor_celula = re.sub(r'\d+|LTDA', '', valor_celula, flags=re.IGNORECASE)
+             valor_celula = re.sub(r'\d+|CPF', '', valor_celula, flags=re.IGNORECASE)
+             valor_celula = re.sub(r'\d+|EM PERNAMBUCO', '', valor_celula, flags=re.IGNORECASE)
             
 
-            valor_celula = valor_celula.strip()
+             valor_celula = valor_celula.strip()
         
-        linha[nome_coluna] = valor_celula
-    dados_das_linhas.append(linha)
+            linha[nome_coluna] = valor_celula
+        dados_das_linhas.append(linha)
     
     # Imprime o valor após o tratamento dos caracteres especiais
     valor_tratado = linha.get(nome_coluna_tratamento)  # Usando .get() para tratar chaves ausentes
@@ -78,11 +83,10 @@ try:
      
     
     for name in names_to_search:
-        query = f"SELECT `CodEscritorio` FROM clientesdistribuicao.termosdistribuicao where `NomePrincipal` = '{name.strip()}' OR `variacoes` = '{name.strip()}'"
+        query = f"SELECT `CodEscritorio` FROM clientesdistribuicao.termosdistribuicao where `NomePrincipal` LIKE '{name.strip()}%' OR `variacoes` = '{name.strip()}'"
         db_cursor.execute(query)
         result = db_cursor.fetchone()
     
-        print (name)
         # Consumir todos os resultados da consulta anterior (se houver)
         if result is not None:
             for _ in result:
@@ -107,13 +111,25 @@ try:
     resultClient_modified = re.sub(r'[^\w\s|]', '', element_to_process)
 
     #cria o doc word
-    doc = Document()
+    doc = Document() 
 
-    TextCodClient = (f"Codigo Escritorio:  {codigo_escritorioSTG}")
+    TextCodClient = (f"Código Escritório:  {codigo_escritorioSTG}")
 
-# Adiciona informações ao documento
-    doc.add_heading (resultClient, level =0)
-    doc.add_heading(TextCodClient, level=0,)
+    paragraph1 = doc.add_paragraph(resultClient)
+    run1 = paragraph1.runs[0]
+    font1 = run1.font
+    font1.color.rgb = RGBColor(0x66, 0x99, 0xFF)  # Cor azul
+    font1.size = Pt(26) 
+    
+    paragraph2 = doc.add_paragraph(TextCodClient)
+    run2 = paragraph2.runs[0]
+    font2 = run2.font
+    font2.color.rgb = RGBColor(0x66, 0x99, 0xFF)  # Cor azul
+    font2.size = Pt(26)
+
+    border_paragraph = doc.add_paragraph('')
+    border_paragraph.add_run('_______________________________________________________________________________________________')
+    border_paragraph.runs[0].bold = True
 
 # Corpo do e-mail
     email_template = (
@@ -132,7 +148,7 @@ try:
     for linha in dados_das_linhas:
         contador += 1
         dados_formatados += f"Distribuição: {contador}\n\n\n"
-        dados_formatados += f"Numero Processo: {linha['coluna_3']}\n\n"
+        dados_formatados += f"Número Processo: {linha['coluna_3']}\n\n"
         dados_formatados += f"Data distribuição: {linha['coluna_1']}\n\n"
         dados_formatados += f"Orgão: {linha['coluna_8']}\n\n"
         dados_formatados += f"Classe Judicial: {linha['coluna_13']}\n\n"
@@ -153,3 +169,5 @@ try:
    
 except FileNotFoundError:
     print("Arquivo Excel não encontrado.")
+except NameError:
+    print("NOME NÃO ENCONTRADO NO BANCO DE DADOS")
