@@ -1,0 +1,162 @@
+import xlrd
+import openpyxl
+import pandas as pd
+import re
+from docx import Document
+import mysql.connector
+import os
+from datetime import datetime, timedelta
+from docx.shared import RGBColor, Pt
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+from docx.enum.table import WD_ALIGN_VERTICAL
+
+db_config = {
+    'host': 'localhost',
+    'user': 'root',
+    'password': '123456',
+    'database': 'apidistribuicao'
+}
+
+data_do_dia = datetime.now()
+data_formatada = data_do_dia.strftime('%Y-%m-%d')
+nomeDoArquivo = (data_formatada + "-" + "impressao.xls")
+nomeDoArquivoDocx = (data_formatada + "-" + "distribuição.docx")
+FechamentoMes = (data_formatada +"-"+"FechamentoDoMes.docx" )
+
+try:
+    db_connection = mysql.connector.connect(**db_config)
+    db_cursor = db_connection.cursor()
+
+    query = (
+    "SELECT c.Cliente_VSAP as clienteVSAP, p.CodEscritorio, p.numeroProcesso, p.dataDistribuicao, "
+    "p.orgaoJulgador, p.tipoDoProcesso, a.nome AS nomeAutor, r.nome AS nomeReu, l.link "
+    "FROM apidistribuicao.processo AS p "
+    "LEFT JOIN apidistribuicao.clientes AS c ON p.CodEscritorio = c.CodEscritorio "
+    "LEFT JOIN apidistribuicao.processo_autor AS a ON p.ID_processo = a.ID_processo "
+    "LEFT JOIN apidistribuicao.processo_reu AS r ON p.ID_processo = r.ID_processo "
+    "LEFT JOIN apidistribuicao.processo_link AS l ON p.ID_processo = l.ID_processo "
+    f"WHERE DATE(p.data_insercao) = '{data_formatada}'"
+)
+    # query=("SELECT c.Cliente_VSAP as clienteVSAP, p.CodEscritorio, p.numeroProcesso, p.dataDistribuicao, "
+    #        "p.orgaoJulgador, p.tipoDoProcesso, a.nome AS nomeAutor, r.nome AS nomeReu, l.link "
+    #         "FROM apidistribuicao.processo AS p "
+    #         "LEFT JOIN apidistribuicao.clientes AS c ON p.CodEscritorio = c.CodEscritorio "
+    #         "LEFT JOIN apidistribuicao.processo_autor AS a ON p.ID_processo = a.ID_processo "
+    #         "LEFT JOIN apidistribuicao.processo_reu AS r ON p.ID_processo = r.ID_processo "
+    #         "LEFT JOIN apidistribuicao.processo_link AS l ON p.ID_processo = l.ID_processo "
+    #         "WHERE p.data_insercao >= CURDATE() - INTERVAL 30 DAY "
+    #         "AND p.data_insercao <= CURDATE() "
+    #         "AND c.CodEscritorio = 1365")
+
+    db_cursor.execute(query)
+    results =db_cursor.fetchall()
+   # Inicialize a variável para rastrear o CodEscritorio atual
+    cod_escritorio_atual = None
+    doc = None  # Adicione esta linha para definir doc como None inicialmente
+    contador_global = 0  # Inicialize o contador global
+
+    # Dicionário para armazenar nomes de autores e réus por número de processo
+    processos_dict = {}
+
+    for idx, result in enumerate(results):
+        cod_escritorio = result[1]  # Índice 1 corresponde à coluna CodEscritorio
+        num_processo = result[2]  # Índice 2 corresponde ao número do processo
+
+        if cod_escritorio != cod_escritorio_atual:
+            # Se for um novo CodEscritorio, crie um novo arquivo Word
+            if doc is not None:
+                # Salve e feche o arquivo Word anterior, se existir
+                doc.save(caminho_arquivo_docx)
+                doc = None
+
+                # Incremento do contador global
+                contador_global += contador_local
+                contador_local = 0  # Reinicialize o contador local para o próximo CodEscritorio
+
+            # Atualize a variável para o CodEscritorio atual
+            cod_escritorio_atual = cod_escritorio
+
+            doc = Document()
+            element_to_process = result[0] if result else ''
+            resultClient_modified = re.sub(r'[^\w\s| ]', '', element_to_process)
+            resultClient_modified = resultClient_modified.strip()
+
+            # Crie um novo arquivo Word para o CodEscritorio atual
+            caminho_arquivo_docx = os.path.join(
+                "C:\\Users\\pedro\\OneDrive - LIG CONTATO DIÁRIO FORENSE\\DISTRIBUIÇÃO\\ARQUIVOS WORD DISTRIBUIÇÕES\\",
+                f"{resultClient_modified}-{nomeDoArquivoDocx}"
+            )
+            TextCodClient = f"Código Escritório:  {result[1]}"
+
+            paragraph1 = doc.add_paragraph(result[0])
+            run1 = paragraph1.runs[0]
+            font1 = run1.font
+            font1.color.rgb = RGBColor(0x66, 0x99, 0xFF)  # Cor azul
+            font1.size = Pt(26)
+
+            paragraph2 = doc.add_paragraph(TextCodClient)
+            run2 = paragraph2.runs[0]
+            font2 = run2.font
+            font2.color.rgb = RGBColor(0x66, 0x99, 0xFF)  # Cor azul
+            font2.size = Pt(26)
+
+            border_paragraph = doc.add_paragraph('')
+            border_paragraph.add_run('_______________________________________________________________________________________________')
+            border_paragraph.runs[0].bold = True
+
+            # Inicialize o contador local para cada CodEscritorio
+            contador_local = 0
+
+        # Verifique se o número do processo já está no dicionário
+        if num_processo in processos_dict:
+            # Adicione o nomeAutor e nomeReu ao dicionário existente
+            processos_dict[num_processo]['nomeAutor'].append(result[6])
+            processos_dict[num_processo]['nomeReu'].append(result[7])
+        else:
+            # Crie um novo item no dicionário para o número do processo
+            processos_dict[num_processo] = {'nomeAutor': [result[6]], 'nomeReu': [result[7]]}
+
+        # Se este não for o último resultado e o próximo tiver o mesmo número de processo,
+        # continue acumulando nomes no dicionário até encontrar um número de processo diferente
+        if idx != len(results) - 1 and results[idx + 1][2] == num_processo:
+            continue
+
+        # Corpo do e-mail
+        email_template = (
+            "Cliente: {resultClient2} \n\n"
+            "Dados coletados:\n\n"
+            "{dados}\n\n"
+            "Atenciosamente,\n"
+            "Lig Contato\n\n"
+            "Detalhes:\n"
+            "Data: {data}\n"
+        )
+
+        dados_formatados = ""
+        contador_local += 1
+        
+        # Preencher o corpo do e-mail com os dados capturados
+        dados_formatados += f"Distribuição: {contador_local}\n\n\n"
+        dados_formatados += f"Número Processo: {num_processo}\n\n"
+        dados_formatados += f"Data distribuição: {result[3]}\n\n"
+        dados_formatados += f"Orgão: {result[4]}\n\n"
+        dados_formatados += f"Classe Judicial: {result[5]}\n\n"
+        dados_formatados += f"Polo Ativo: {', '.join(processos_dict[num_processo]['nomeAutor'])}\n\n"
+        dados_formatados += f"Polo Passivo: {', '.join(processos_dict[num_processo]['nomeReu'])}\n\n"
+        dados_formatados += f"Link: {result[8]}\n\n"
+
+        email_texto = email_template.format(data=data_do_dia.strftime('%d/%m/%y'),
+                                            dados=dados_formatados, resultClient2=resultClient_modified)
+
+        doc.add_paragraph(email_texto)
+
+    # Salve o último arquivo Word
+    if doc is not None:
+        doc.save(caminho_arquivo_docx)
+        contador_global += contador_local  # Incremento final do contador global
+
+    # Exiba o contador global ao final do processamento
+    print(f"Total de Distribuições: {contador_global}")
+
+except NameError:
+    print("NOME NÃO ENCONTRADO NO BANCO DE DADOS")

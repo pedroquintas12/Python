@@ -21,6 +21,8 @@ data_do_dia = datetime.now()
 data_formatada = data_do_dia.strftime('%Y%m%d')
 nomeDoArquivo = (data_formatada + "-" + "impressao.xls")
 nomeDoArquivoDocx = (data_formatada + "-" + "distribuição.docx")
+FechamentoMes = (data_formatada +"-"+"FechamentoDoMes.docx" )
+
 
 caminho_arquivo = r"C:\Users\pedro\OneDrive - LIG CONTATO DIÁRIO FORENSE\DISTRIBUIÇÃO\DISTRIBUIÇÕES\\" + nomeDoArquivo
 
@@ -56,13 +58,15 @@ try:
         
             if col == 4:  # Se a coluna for a coluna 5
             # Remove todos os caracteres especiais, exceto "|"
-             valor_celula = re.sub(r'[^\w\s|@& \w\s-]', '', valor_celula)
+             valor_celula = re.sub(r'[^\w\s|@&. \w\s-]', '', valor_celula)
             # Remove números e a substring "(CNPJ)"
              valor_celula = re.sub(r'\d+|CNPJ', '', valor_celula, flags=re.IGNORECASE)
-             #valor_celula = re.sub(r'\d+|LTDA', '', valor_celula, flags=re.IGNORECASE)
+             
+             valor_celula = re.sub(r'\d+|LTDA', '', valor_celula, flags=re.IGNORECASE)
+             #valor_celula = re.sub(r'\d+|S.A', '', valor_celula, flags=re.IGNORECASE)
              valor_celula = re.sub(r'\d+|CPF', '', valor_celula, flags=re.IGNORECASE)
              valor_celula = re.sub(r'\d+|EM PERNAMBUCO', '', valor_celula, flags=re.IGNORECASE)
-             valor_celula = re.sub(r'\d+|-', '', valor_celula, flags=re.IGNORECASE)
+             #valor_celula = re.sub(r'\d+|-', '', valor_celula, flags=re.IGNORECASE)
              #valor_celula = re.sub(r'\d+|ME', '', valor_celula, flags=re.IGNORECASE)
 
              valor_celula = valor_celula.strip()
@@ -84,7 +88,7 @@ try:
      
     
     for name in names_to_search:
-        query = f"SELECT `CodEscritorio` FROM clientesdistribuicao.termosdistribuicao where `NomePrincipal` LIKE '{name.strip()}%' OR `variacoes` = '{name.strip()}'"
+        query = f"SELECT `CodEscritorio` FROM clientesdistribuicao.termosdistribuicao where `variacoes` LIKE '{name.strip()}%'"
         db_cursor.execute(query)
         result = db_cursor.fetchone()
     
