@@ -18,10 +18,12 @@ data_do_dia = datetime.now()
 data_formatada = data_do_dia.strftime('%Y-%m-%d')
 nomeDoArquivo = (data_formatada + "-" + "impressao.xls")
 nomeDoArquivoDocx = (data_formatada + "-" + "distribuição.docx")
+FechamentoMes = (data_formatada +"-"+"FechamentoDoMes.docx" )
+
 try:
     db_connection = mysql.connector.connect(**db_config)
     db_cursor = db_connection.cursor()
-    
+
 
     query = (
         "SELECT c.Cliente_VSAP as clienteVSAP, p.CodEscritorio, p.numeroProcesso, "
@@ -35,20 +37,19 @@ try:
         "LEFT JOIN apidistribuicao.processo_autor AS a ON p.ID_processo = a.ID_processo "
         "LEFT JOIN apidistribuicao.processo_reu AS r ON p.ID_processo = r.ID_processo "
         "LEFT JOIN apidistribuicao.processo_link AS l ON p.ID_processo = l.ID_processo "
-        f"WHERE DATE(p.data_insercao) = '{data_formatada}' "
+        f"WHERE DATE(p.data_insercao) = '2024-02-07' "
         "AND p.CodEscritorio = 795 "
         "GROUP BY p.numeroProcesso, clienteVSAP, p.CodEscritorio, p.orgaoJulgador, p.tipoDoProcesso;"
     )
-
         
     db_cursor.execute(query)
     results =db_cursor.fetchall()
-   # Inicialize a variável para rastrear o CodEscritorio atual
-    cod_escritorio_atual = None
-    doc = None  # Adicione esta linha para definir doc como None inicialmente
-    contador_global = 0  # Inicialize o contador global
 
-    # Dicionário para armazenar nomes de autores e réus por número de processo
+
+    cod_escritorio_atual = None
+    doc = None  
+    contador_global = 0  #contador global
+
     processos_dict = {}
 
     for idx, result in enumerate(results):
@@ -77,7 +78,7 @@ try:
             # Crie um novo arquivo Word para o CodEscritorio atual
             caminho_arquivo_docx = os.path.join(
                 "C:\\Users\\pedro\\OneDrive - LIG CONTATO DIÁRIO FORENSE\\DISTRIBUIÇÃO\\ARQUIVOS WORD DISTRIBUIÇÕES\\",
-                f"{resultClient_modified}-{nomeDoArquivoDocx}"
+                f"{resultClient_modified}-{FechamentoMes}"
             )
             TextCodClient = f"Código Escritório:  {result[1]}"
 
@@ -114,20 +115,20 @@ try:
         if idx != len(results) - 1 and results[idx + 1][2] == num_processo:
             continue
 
-        query2 = ("SELECT c.Cliente_VSAP as clienteVSAP, p.CodEscritorio, p.numeroProcesso, MAX(p.dataDistribuicao) as dataDistribuicao, " 
-                    "MAX(p.orgaoJulgador) as orgaoJulgador, MAX(p.tipoDoProcesso) as tipoDoProcesso, "
-                    "MAX(a.nome) AS nomeAutor, MAX(r.nome) AS nomeReu, MAX(l.link) as link, "
-                    "MAX(date(p.data_insercao)) as Data "
-                    "FROM apidistribuicao.processo AS p "
-                    "LEFT JOIN apidistribuicao.clientes AS c ON p.CodEscritorio = c.CodEscritorio "
-                    "LEFT JOIN apidistribuicao.processo_autor AS a ON p.ID_processo = a.ID_processo "
-                    "LEFT JOIN apidistribuicao.processo_reu AS r ON p.ID_processo = r.ID_processo "
-                    "LEFT JOIN apidistribuicao.processo_link AS l ON p.ID_processo = l.ID_processo "
-                    "WHERE p.deleted = 0 "
-                        f"AND DATE(p.data_insercao) >= '{data_formatada}' "
-                        f"AND c.CodEscritorio = {cod_escritorio_atual} "
-                    "GROUP BY p.numeroProcesso, clienteVSAP, p.CodEscritorio;") 
-        
+        query2 = ("SELECT c.Cliente_VSAP as clienteVSAP, p.CodEscritorio, p.numeroProcesso, MAX(p.dataDistribuicao) as dataDistribuicao, "
+                "MAX(p.orgaoJulgador) as orgaoJulgador, MAX(p.tipoDoProcesso) as tipoDoProcesso, "
+                "MAX(a.nome) AS nomeAutor, MAX(r.nome) AS nomeReu, MAX(l.link) as link, "
+                "MAX(date(p.data_insercao)) as Data "
+                "FROM apidistribuicao.processo AS p "
+                "LEFT JOIN apidistribuicao.clientes AS c ON p.CodEscritorio = c.CodEscritorio " 
+                "LEFT JOIN apidistribuicao.processo_autor AS a ON p.ID_processo = a.ID_processo "
+                "LEFT JOIN apidistribuicao.processo_reu AS r ON p.ID_processo = r.ID_processo " 
+                "LEFT JOIN apidistribuicao.processo_link AS l ON p.ID_processo = l.ID_processo "
+                "WHERE p.deleted = 0 "
+                "AND p.data_insercao >= CURDATE() - INTERVAL 30 DAY "
+                "AND p.data_insercao <= CURDATE() "
+                f"AND c.CodEscritorio = {cod_escritorio_atual} "
+                "GROUP BY p.numeroProcesso, clienteVSAP, p.CodEscritorio;")
         db_cursor.execute(query2)
         results_rows =db_cursor.fetchall()
         
@@ -155,6 +156,7 @@ try:
             dados_formatados += "Polo Passivo: [Nenhum dado disponível]\n\n"       
         
         dados_formatados += f"Link: {result[8]}\n\n"
+        
 
         email_texto = email_template.format(data=data_do_dia.strftime('%d/%m/%y'),
                                             dados=dados_formatados, resultClient2=resultClient_modified)
@@ -163,13 +165,14 @@ try:
 
     # Salve o último arquivo Word
     if doc is not None:
-        paragraph_atenciosamente = doc.add_paragraph("Atenciosamente,")
-        paragraph_atenciosamente = doc.add_paragraph("Lig Contato\n")
+        paragraph_atenciosamente = doc.add_paragraph("Atenciosamente, Lig Contato")
         dataComBarra = data_do_dia.strftime('%d/%m/%Y')
         paragraph_atenciosamente = doc.add_paragraph(f"Data: {dataComBarra}")
         
         doc.save(caminho_arquivo_docx)
         contador_global += contador_local  # Incremento final do contador global
+
+
 
     # Exiba o contador global ao final do processamento
     print(f"Total de Distribuições: {contador_global}")
