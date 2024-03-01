@@ -29,14 +29,15 @@ try:
         "p.orgaoJulgador, p.tipoDoProcesso, "
         "GROUP_CONCAT(DISTINCT a.nome ORDER BY a.nome SEPARATOR ', ') AS nomesAutores, "
         "GROUP_CONCAT(DISTINCT r.nome ORDER BY r.nome SEPARATOR ', ') AS nomesReus, "
-        "MAX(l.link) as link "
+        "GROUP_CONCAT(distinct l.linkDocumento  order by l.linkDocumento separator', ') as Link "
         "FROM apidistribuicao.processo AS p "
         "LEFT JOIN apidistribuicao.clientes AS c ON p.CodEscritorio = c.CodEscritorio "
         "LEFT JOIN apidistribuicao.processo_autor AS a ON p.ID_processo = a.ID_processo "
         "LEFT JOIN apidistribuicao.processo_reu AS r ON p.ID_processo = r.ID_processo "
-        "LEFT JOIN apidistribuicao.processo_link AS l ON p.ID_processo = l.ID_processo "
+        "left join apidistribuicao.processo_docinicial as l on p.ID_processo =l.ID_processo "
         f"WHERE DATE(p.data_insercao) = '{data_formatada}' "
-        "AND p.CodEscritorio = 795 "
+        "and l.docPeticaoInicial = 0 "
+        "AND p.CodEscritorio = 1303 "
         "GROUP BY p.numeroProcesso, clienteVSAP, p.CodEscritorio, p.orgaoJulgador, p.tipoDoProcesso;"
     )
 

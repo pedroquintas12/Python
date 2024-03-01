@@ -26,20 +26,23 @@ try:
 
 
     query = (
-        "SELECT c.Cliente_VSAP as clienteVSAP, p.CodEscritorio, p.numeroProcesso, "
-        "MAX(p.dataDistribuicao) as dataDistribuicao, "
-        "p.orgaoJulgador, p.tipoDoProcesso, "
-        "GROUP_CONCAT(DISTINCT a.nome ORDER BY a.nome SEPARATOR ', ') AS nomesAutores, "
+       "SELECT c.Cliente_VSAP as clienteVSAP, p.CodEscritorio, p.numeroProcesso, MAX(p.dataDistribuicao) as dataDistribuicao, "
+        "p.orgaoJulgador, "
+        "p.tipoDoProcesso, "
+        "GROUP_CONCAT(DISTINCT a.nome ORDER BY a.nome SEPARATOR ', ') AS nomesAutores, " 
         "GROUP_CONCAT(DISTINCT r.nome ORDER BY r.nome SEPARATOR ', ') AS nomesReus, "
-        "MAX(l.link) as link "
+        "GROUP_CONCAT(DISTINCT l.linkDocumento ORDER BY l.linkDocumento SEPARATOR ' , ') AS Link , "
+        "MAX(date(p.data_insercao)) as Data "
         "FROM apidistribuicao.processo AS p "
-        "LEFT JOIN apidistribuicao.clientes AS c ON p.CodEscritorio = c.CodEscritorio "
-        "LEFT JOIN apidistribuicao.processo_autor AS a ON p.ID_processo = a.ID_processo "
+        "LEFT JOIN apidistribuicao.clientes AS c ON p.CodEscritorio = c.CodEscritorio " 
+        "LEFT JOIN apidistribuicao.processo_autor AS a ON p.ID_processo = a.ID_processo " 
         "LEFT JOIN apidistribuicao.processo_reu AS r ON p.ID_processo = r.ID_processo "
-        "LEFT JOIN apidistribuicao.processo_link AS l ON p.ID_processo = l.ID_processo "
-        f"WHERE DATE(p.data_insercao) = '2024-02-07' "
-        "AND p.CodEscritorio = 795 "
-        "GROUP BY p.numeroProcesso, clienteVSAP, p.CodEscritorio, p.orgaoJulgador, p.tipoDoProcesso;"
+        "LEFT JOIN apidistribuicao.processo_docinicial AS l ON p.ID_processo = l.ID_processo "
+        "WHERE p.deleted = 0 "
+        "AND p.data_insercao >= CURDATE() - INTERVAL 29 DAY " 
+        "AND p.data_insercao <= CURDATE() "
+        "AND c.CodEscritorio = 1303 "
+        "GROUP BY clienteVSAP, p.ID_processo; "
     )
         
     db_cursor.execute(query)
@@ -117,18 +120,19 @@ try:
 
         query2 = ("SELECT c.Cliente_VSAP as clienteVSAP, p.CodEscritorio, p.numeroProcesso, MAX(p.dataDistribuicao) as dataDistribuicao, "
                 "MAX(p.orgaoJulgador) as orgaoJulgador, MAX(p.tipoDoProcesso) as tipoDoProcesso, "
-                "MAX(a.nome) AS nomeAutor, MAX(r.nome) AS nomeReu, MAX(l.link) as link, "
+                "MAX(a.nome) AS nomeAutor, MAX(r.nome) AS nomeReu, MAX(l.linkDocumento) as link, "
                 "MAX(date(p.data_insercao)) as Data "
                 "FROM apidistribuicao.processo AS p "
                 "LEFT JOIN apidistribuicao.clientes AS c ON p.CodEscritorio = c.CodEscritorio " 
                 "LEFT JOIN apidistribuicao.processo_autor AS a ON p.ID_processo = a.ID_processo "
                 "LEFT JOIN apidistribuicao.processo_reu AS r ON p.ID_processo = r.ID_processo " 
-                "LEFT JOIN apidistribuicao.processo_link AS l ON p.ID_processo = l.ID_processo "
+                "LEFT JOIN apidistribuicao.processo_docinicial AS l ON p.ID_processo = l.ID_processo "
                 "WHERE p.deleted = 0 "
-                "AND p.data_insercao >= CURDATE() - INTERVAL 30 DAY "
+                "AND p.data_insercao >= CURDATE() - INTERVAL 29 DAY "
                 "AND p.data_insercao <= CURDATE() "
                 f"AND c.CodEscritorio = {cod_escritorio_atual} "
                 "GROUP BY p.numeroProcesso, clienteVSAP, p.CodEscritorio;")
+        
         db_cursor.execute(query2)
         results_rows =db_cursor.fetchall()
         
