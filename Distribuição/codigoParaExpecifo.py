@@ -18,41 +18,43 @@ data_do_dia = datetime.now()
 data_formatada = data_do_dia.strftime('%Y-%m-%d')
 nomeDoArquivo = (data_formatada + "-" + "impressao.xls")
 nomeDoArquivoDocx = (data_formatada + "-" + "distribuição.docx")
-FechamentoMes = (data_formatada +"-"+"FechamentoDoMes.docx" )
-
 try:
     db_connection = mysql.connector.connect(**db_config)
     db_cursor = db_connection.cursor()
-
+    
 
     query = (
-       "SELECT c.Cliente_VSAP as clienteVSAP, p.CodEscritorio, p.numeroProcesso, MAX(p.dataDistribuicao) as dataDistribuicao, "
-        "p.orgaoJulgador, "
-        "p.tipoDoProcesso, "
-        "GROUP_CONCAT(DISTINCT a.nome ORDER BY a.nome SEPARATOR ', ') AS nomesAutores, " 
-        "GROUP_CONCAT(DISTINCT r.nome ORDER BY r.nome SEPARATOR ', ') AS nomesReus, "
-        "GROUP_CONCAT(DISTINCT l.linkDocumento ORDER BY l.linkDocumento SEPARATOR ' , ') AS Link , "
-        "MAX(date(p.data_insercao)) as Data "
-        "FROM apidistribuicao.processo AS p "
-        "LEFT JOIN apidistribuicao.clientes AS c ON p.CodEscritorio = c.CodEscritorio " 
-        "LEFT JOIN apidistribuicao.processo_autor AS a ON p.ID_processo = a.ID_processo " 
-        "LEFT JOIN apidistribuicao.processo_reu AS r ON p.ID_processo = r.ID_processo "
-        "LEFT JOIN apidistribuicao.processo_docinicial AS l ON p.ID_processo = l.ID_processo "
-        "WHERE p.deleted = 0 "
-        "AND p.data_insercao >= CURDATE() - INTERVAL 29 DAY " 
-        "AND p.data_insercao <= CURDATE() "
-        "AND c.CodEscritorio = 1303 "
-        "GROUP BY clienteVSAP, p.ID_processo; "
-    )
+    "SELECT c.Cliente_VSAP as clienteVSAP, p.CodEscritorio, p.numeroProcesso, "
+    "MAX(p.dataDistribuicao) as dataDistribuicao, "
+    "p.orgaoJulgador, p.tipoDoProcesso, p.status, "
+    "GROUP_CONCAT(DISTINCT a.nome ORDER BY a.nome SEPARATOR ', ') AS nomesAutores, "
+    "GROUP_CONCAT(DISTINCT r.nome ORDER BY r.nome SEPARATOR ', ') AS nomesReus, "
+    "GROUP_CONCAT(distinct l.linkDocumento  order by l.linkDocumento separator', ') as Link, "
+    "p.uf, p.siglaSistema, MAX(p.instancia), p.tribunal "
+    "FROM apidistribuicao.processo AS p "
+    "LEFT JOIN apidistribuicao.clientes AS c ON p.CodEscritorio = c.CodEscritorio "
+    "LEFT JOIN apidistribuicao.processo_autor AS a ON p.ID_processo = a.ID_processo "
+    "LEFT JOIN apidistribuicao.processo_reu AS r ON p.ID_processo = r.ID_processo "
+    "LEFT JOIN apidistribuicao.processo_docinicial as l ON p.ID_processo = l.ID_processo "
+    f"WHERE DATE(p.data_insercao) = '{data_formatada}' "
+    "and p.dataDistribuicao >= '2024-04-01'"
+    "AND l.docPeticaoInicial = 0 "
+    "AND p.CodEscritorio = 1378 "
+    "AND p.status = 'S' "
+    "AND p.uf IN ('PE', 'AL','CE','PI','BA','MA','PB','SE','RN') "
+    "GROUP BY p.numeroProcesso, clienteVSAP, p.CodEscritorio, p.orgaoJulgador, p.tipoDoProcesso, p.uf, p.siglaSistema,p.tribunal;"
+)
+
+
         
     db_cursor.execute(query)
     results =db_cursor.fetchall()
-
-
+   # Inicialize a variável para rastrear o CodEscritorio atual
     cod_escritorio_atual = None
-    doc = None  
-    contador_global = 0  #contador global
+    doc = None  # Adicione esta linha para definir doc como None inicialmente
+    contador_global = 0  # Inicialize o contador global
 
+    # Dicionário para armazenar nomes de autores e réus por número de processo
     processos_dict = {}
 
     for idx, result in enumerate(results):
@@ -81,7 +83,7 @@ try:
             # Crie um novo arquivo Word para o CodEscritorio atual
             caminho_arquivo_docx = os.path.join(
                 "C:\\Users\\pedro\\OneDrive - LIG CONTATO DIÁRIO FORENSE\\DISTRIBUIÇÃO\\ARQUIVOS WORD DISTRIBUIÇÕES\\",
-                f"{resultClient_modified}-{FechamentoMes}"
+                f"{resultClient_modified}-{nomeDoArquivoDocx}"
             )
             TextCodClient = f"Código Escritório:  {result[1]}"
 
@@ -107,31 +109,33 @@ try:
         # Verifique se o número do processo já está no dicionário
         if num_processo in processos_dict:
             # Adicione o nomeAutor e nomeReu ao dicionário existente
-            processos_dict[num_processo]['nomeAutor'].append(result[6])
-            processos_dict[num_processo]['nomeReu'].append(result[7])
+            processos_dict[num_processo]['nomeAutor'].append(result[7])
+            processos_dict[num_processo]['nomeReu'].append(result[8])
         else:
             # Crie um novo item no dicionário para o número do processo
-            processos_dict[num_processo] = {'nomeAutor': [result[6]], 'nomeReu': [result[7]]}
+            processos_dict[num_processo] = {'nomeAutor': [result[7]], 'nomeReu': [result[8]]}
 
         # Se este não for o último resultado e o próximo tiver o mesmo número de processo,
         # continue acumulando nomes no dicionário até encontrar um número de processo diferente
         if idx != len(results) - 1 and results[idx + 1][2] == num_processo:
             continue
 
-        query2 = ("SELECT c.Cliente_VSAP as clienteVSAP, p.CodEscritorio, p.numeroProcesso, MAX(p.dataDistribuicao) as dataDistribuicao, "
-                "MAX(p.orgaoJulgador) as orgaoJulgador, MAX(p.tipoDoProcesso) as tipoDoProcesso, "
-                "MAX(a.nome) AS nomeAutor, MAX(r.nome) AS nomeReu, MAX(l.linkDocumento) as link, "
-                "MAX(date(p.data_insercao)) as Data "
-                "FROM apidistribuicao.processo AS p "
-                "LEFT JOIN apidistribuicao.clientes AS c ON p.CodEscritorio = c.CodEscritorio " 
-                "LEFT JOIN apidistribuicao.processo_autor AS a ON p.ID_processo = a.ID_processo "
-                "LEFT JOIN apidistribuicao.processo_reu AS r ON p.ID_processo = r.ID_processo " 
-                "LEFT JOIN apidistribuicao.processo_docinicial AS l ON p.ID_processo = l.ID_processo "
-                "WHERE p.deleted = 0 "
-                "AND p.data_insercao >= CURDATE() - INTERVAL 29 DAY "
-                "AND p.data_insercao <= CURDATE() "
-                f"AND c.CodEscritorio = {cod_escritorio_atual} "
-                "GROUP BY p.numeroProcesso, clienteVSAP, p.CodEscritorio;")
+        query2 = ("SELECT c.Cliente_VSAP as clienteVSAP, p.CodEscritorio, p.numeroProcesso, p.status, MAX(p.dataDistribuicao) as dataDistribuicao, " 
+                    "MAX(p.orgaoJulgador) as orgaoJulgador, MAX(p.tipoDoProcesso) as tipoDoProcesso, "
+                    "MAX(a.nome) AS nomeAutor, MAX(r.nome) AS nomeReu, MAX(l.link) as link, "
+                    "MAX(date(p.data_insercao)) as Data "
+                    "FROM apidistribuicao.processo AS p "
+                    "LEFT JOIN apidistribuicao.clientes AS c ON p.CodEscritorio = c.CodEscritorio "
+                    "LEFT JOIN apidistribuicao.processo_autor AS a ON p.ID_processo = a.ID_processo "
+                    "LEFT JOIN apidistribuicao.processo_reu AS r ON p.ID_processo = r.ID_processo "
+                    "LEFT JOIN apidistribuicao.processo_link AS l ON p.ID_processo = l.ID_processo "
+                    "WHERE p.deleted = 0 "
+                        "and p.dataDistribuicao >= '2024-04-01'"
+                        f"AND DATE (p.data_insercao) >= '{data_formatada}' "
+                        f"AND c.CodEscritorio = {cod_escritorio_atual} "
+                        "AND p.status = 'S' "
+                        "AND p.uf IN ('PE', 'AL','CE','PI','BA','MA','PB','SE','RN') "
+                    "GROUP BY p.numeroProcesso, clienteVSAP, p.CodEscritorio;") 
         
         db_cursor.execute(query2)
         results_rows =db_cursor.fetchall()
@@ -148,19 +152,24 @@ try:
         
         # Preencher o corpo do e-mail com os dados capturados
         dados_formatados += f"Distribuição: {contador_local} de {len(results_rows)} \n\n\n"
+        dados_formatados += f"Tribunal: {result[13]} \n\n"
+        dados_formatados += f"UF/Instância/Comarca:    {result[10]}/{result[12]}/{result[11]} \n\n"
         dados_formatados += f"Número Processo: {num_processo}\n\n"
         data_distribuicao = datetime.strptime(str(result[3]), '%Y-%m-%d').strftime('%d/%m/%Y')
         dados_formatados += f"Data distribuição: {data_distribuicao}\n\n"
         dados_formatados += f"Orgão: {result[4]}\n\n"
         dados_formatados += f"Classe Judicial: {result[5]}\n\n"
-        dados_formatados += f"Polo Ativo: {', '.join(processos_dict [num_processo]['nomeAutor'])}\n\n"
+        if processos_dict[num_processo]['nomeAutor'] is not None:
+            dados_formatados += f"Polo Ativo: {', '.join((filter(None, processos_dict [num_processo]['nomeAutor'])))}\n\n"
+        else:
+            dados_formatados += "Polo ativo: NULL"
+
         if processos_dict[num_processo]['nomeReu'] is not None:
             dados_formatados += f"Polo Passivo: {', '.join(filter(None, processos_dict[num_processo]['nomeReu']))}\n\n"
         else:
             dados_formatados += "Polo Passivo: [Nenhum dado disponível]\n\n"       
         
-        dados_formatados += f"Link: {result[8]}\n\n"
-        
+        dados_formatados += f"Link: {result[9]}\n\n"
 
         email_texto = email_template.format(data=data_do_dia.strftime('%d/%m/%y'),
                                             dados=dados_formatados, resultClient2=resultClient_modified)
@@ -169,14 +178,13 @@ try:
 
     # Salve o último arquivo Word
     if doc is not None:
-        paragraph_atenciosamente = doc.add_paragraph("Atenciosamente, Lig Contato")
+        paragraph_atenciosamente = doc.add_paragraph("Atenciosamente,")
+        paragraph_atenciosamente = doc.add_paragraph("Lig Contato\n")
         dataComBarra = data_do_dia.strftime('%d/%m/%Y')
         paragraph_atenciosamente = doc.add_paragraph(f"Data: {dataComBarra}")
         
         doc.save(caminho_arquivo_docx)
         contador_global += contador_local  # Incremento final do contador global
-
-
 
     # Exiba o contador global ao final do processamento
     print(f"Total de Distribuições: {contador_global}")

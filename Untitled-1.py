@@ -19,12 +19,12 @@ db_config = {
 
 data_do_dia = datetime.now()
 data_formatada = data_do_dia.strftime('%Y%m%d')
-nomeDoArquivo = (data_formatada + "-" + "impressao.xls")
+nomeDoArquivo = ("impressao (1).xls")
 nomeDoArquivoDocx = (data_formatada + "-" + "distribuição.docx")
 FechamentoMes = (data_formatada +"-"+"FechamentoDoMes.docx" )
 
 
-caminho_arquivo = r"C:\Users\pedro\OneDrive - LIG CONTATO DIÁRIO FORENSE\DISTRIBUIÇÃO\DISTRIBUIÇÕES\\" + nomeDoArquivo
+caminho_arquivo = r"C:\Users\pedro\OneDrive - LIG CONTATO DIÁRIO FORENSE\DISTRIBUIÇÃO\\" + nomeDoArquivo
 
 if not os.path.exists(caminho_arquivo):
     data_do_dia -= timedelta(days=1)  
@@ -112,6 +112,9 @@ try:
        query = f"SELECT `Nomedoescritorio` FROM clientesdistribuicao.clientes where `CodigoVSAP` = '{nameClient}'"
        db_cursor.execute(query)
        resultClient = db_cursor.fetchone()
+       if resultClient == None:
+            resultClient = "objeto null"
+
     element_to_process = resultClient[0]  # Acesse o elemento desejado da tupla
     resultClient_modified = re.sub(r'[^\w\s|]', '', element_to_process)
 

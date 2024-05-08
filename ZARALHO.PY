@@ -19,12 +19,12 @@ db_config = {
 
 data_do_dia = datetime.now()
 data_formatada = data_do_dia.strftime('%Y%m%d')
-nomeDoArquivo = (data_formatada + "-" + "impressao.xls")
+nomeDoArquivo = ("impressao (1).xls")
 nomeDoArquivoDocx = (data_formatada + "-" + "distribuição.docx")
 FechamentoMes = (data_formatada +"-"+"FechamentoDoMes.docx" )
 
 
-caminho_arquivo = r"C:\Users\pedro\OneDrive - LIG CONTATO DIÁRIO FORENSE\DISTRIBUIÇÃO\DISTRIBUIÇÕES\\" + nomeDoArquivo
+caminho_arquivo = r"C:\Users\pedro\OneDrive - LIG CONTATO DIÁRIO FORENSE\DISTRIBUIÇÃO\\" + nomeDoArquivo
 
 if not os.path.exists(caminho_arquivo):
     data_do_dia -= timedelta(days=1)  
