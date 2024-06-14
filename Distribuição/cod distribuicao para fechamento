@@ -8,8 +8,9 @@ from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from docx.enum.table import WD_ALIGN_VERTICAL
 
 db_config = {
-    'host': 'localhost',
-    'user': 'root',
+    'host': '26.191.28.12',
+    'port':'3306',
+    'user': 'pedro',
     'password': '123456',
     'database': 'apidistribuicao'
 }
@@ -31,19 +32,17 @@ try:
         "p.tipoDoProcesso, p.status, "
         "GROUP_CONCAT(DISTINCT a.nome ORDER BY a.nome SEPARATOR ', ') AS nomesAutores, " 
         "GROUP_CONCAT(DISTINCT r.nome ORDER BY r.nome SEPARATOR ', ') AS nomesReus, "
-        "GROUP_CONCAT(DISTINCT l.linkDocumento ORDER BY l.linkDocumento SEPARATOR ' , ') AS Link , "
+        "l.link, "
         "MAX(date(p.data_insercao)) as Data, p.uf, p.siglaSistema, MAX(p.instancia), p.tribunal "
         "FROM apidistribuicao.processo AS p "
         "LEFT JOIN apidistribuicao.clientes AS c ON p.CodEscritorio = c.CodEscritorio " 
         "LEFT JOIN apidistribuicao.processo_autor AS a ON p.ID_processo = a.ID_processo " 
         "LEFT JOIN apidistribuicao.processo_reu AS r ON p.ID_processo = r.ID_processo "
-        "LEFT JOIN apidistribuicao.processo_docinicial AS l ON p.ID_processo = l.ID_processo "
+        "LEFT JOIN apidistribuicao.processo_link AS l ON p.ID_processo = l.ID_processo "
         "WHERE p.deleted = 0 "
-        "AND p.data_insercao >= CURDATE() - INTERVAL 33 DAY " 
-        "AND p.data_insercao <= CURDATE() "
-        "AND c.CodEscritorio = 1378 "
-        "AND p.uf IN ('PE', 'AL','CE','PI','BA','MA','PB','SE','RN') "
-        "GROUP BY clienteVSAP, p.ID_processo; "
+        "and p.data_insercao between '2024-05-01' and '2024-05-31' " 
+        "AND c.CodEscritorio = 1376 "
+        "GROUP BY clienteVSAP, p.ID_processo, l.link; "
     )
         
     db_cursor.execute(query)
@@ -129,9 +128,7 @@ try:
                 "LEFT JOIN apidistribuicao.processo_reu AS r ON p.ID_processo = r.ID_processo " 
                 "LEFT JOIN apidistribuicao.processo_docinicial AS l ON p.ID_processo = l.ID_processo "
                 "WHERE p.deleted = 0 "
-                "AND p.data_insercao >= CURDATE() - INTERVAL 30 DAY "
-                "AND p.data_insercao <= CURDATE() "
-                "AND p.uf IN ('PE', 'AL','CE','PI','BA','MA','PB','SE','RN') "
+                "and p.data_insercao between '2024-05-01' and '2024-05-31' " 
                 f"AND c.CodEscritorio = {cod_escritorio_atual} "
                 "GROUP BY p.numeroProcesso, clienteVSAP, p.CodEscritorio, p.uf;")
         

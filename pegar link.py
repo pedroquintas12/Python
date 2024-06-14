@@ -30,6 +30,9 @@ def extrair_links_da_pagina(url):
         soup = BeautifulSoup(response.content, "html.parser")
         
         links = soup.find_all("a", class_="summary url")
+        if not links:
+            # Se não encontrar, tentar encontrar os links com a classe "state-missing-value url"
+            links = soup.find_all("a", class_="state-missing-value url")
         
         return [link.get("href").replace("/view", "") for link in links]
     else:

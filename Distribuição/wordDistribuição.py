@@ -30,7 +30,7 @@ try:
     "p.orgaoJulgador, p.tipoDoProcesso, p.status, "
     "GROUP_CONCAT(DISTINCT a.nome ORDER BY a.nome SEPARATOR ', ') AS nomesAutores, "
     "GROUP_CONCAT(DISTINCT r.nome ORDER BY r.nome SEPARATOR ', ') AS nomesReus, "
-    "GROUP_CONCAT(distinct l.linkDocumento  order by l.linkDocumento separator', ') as Link, "
+    "GROUP_CONCAT(distinct l.linkDocumento  order by l.linkDocumento separator' | ') as Link, "
     "p.uf, p.siglaSistema, MAX(p.instancia), p.tribunal "
     "FROM apidistribuicao.processo AS p "
     "LEFT JOIN apidistribuicao.clientes AS c ON p.CodEscritorio = c.CodEscritorio "
@@ -39,7 +39,7 @@ try:
     "LEFT JOIN apidistribuicao.processo_docinicial as l ON p.ID_processo = l.ID_processo "
     f"WHERE DATE(p.data_insercao) = '{data_formatada}' "
     "AND l.docPeticaoInicial = 0 "
-    "AND p.CodEscritorio = 1342 "
+    "AND p.CodEscritorio = 1172 "
     "AND p.status = 'S' "
     "GROUP BY p.numeroProcesso, clienteVSAP, p.CodEscritorio, p.orgaoJulgador, p.tipoDoProcesso, p.uf, p.siglaSistema,p.tribunal;"
 )
