@@ -18,6 +18,7 @@ db_config = {
 data_do_dia = datetime.now()
 data_formatada = data_do_dia.strftime('%Y-%m-%d')
 nomeDoArquivoDocx = f"{data_formatada}-distribuição.docx"
+contador_global = 0  
 
 try:
     db_connection = mysql.connector.connect(**db_config)
@@ -62,8 +63,6 @@ try:
 
         cod_escritorio_atual = None
         doc = None  
-        contador_global = 0  
-   
         processos_dict = {}
 
         for idx, result in enumerate(results):
@@ -127,7 +126,7 @@ try:
                 "LEFT JOIN apidistribuicao.processo_reu AS r ON p.ID_processo = r.ID_processo "
                 "LEFT JOIN apidistribuicao.processo_link AS l ON p.ID_processo = l.ID_processo "
                 "WHERE p.deleted = 0 "
-                "AND DATE(p.data_insercao) >= %s "
+                "AND DATE(p.data_insercao) = %s "
                 "AND c.Cod_escritorio = %s "
                 "AND p.status = 'S' "
                 "GROUP BY p.numero_processo, clienteVSAP, p.Cod_escritorio;"
@@ -144,7 +143,8 @@ try:
 
             dados_formatados = ""
             contador_local += 1
-        
+            contador_global += 1 
+
             dados_formatados += f"Distribuição: {contador_local} de {len(results_rows)} \n\n\n"
             dados_formatados += f"Tribunal: {result[13]} \n\n"
             dados_formatados += f"UF/Instância/Comarca:    {result[10]}/{result[12]}/{result[11]} \n\n"
@@ -177,9 +177,9 @@ try:
             paragraph_atenciosamente = doc.add_paragraph(f"Data: {dataComBarra}")
             
             doc.save(caminho_arquivo_docx)
-            contador_global += contador_local  
 
-        print(f"Total de Distribuições para {element_to_process}:\n {contador_global}")
+        print(f"Total de Distribuições para {element_to_process}:\n {contador_local}")
+    print(f"Total geral de distribuições: {contador_global}")
 
 except NameError:
     print("NOME NÃO ENCONTRADO NO BANCO DE DADOS")

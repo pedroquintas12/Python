@@ -21,9 +21,10 @@ data_formatada = data_do_dia.strftime('%Y-%m-%d')
 nomeDoArquivo = (data_formatada + "-" + "impressao.xls")
 nomeDoArquivoDocx = (data_formatada + "-" + "distribuição.docx")
 FechamentoMes = (data_formatada +"-"+"FechamentoDoMes" )
+contador_global = 0  #contador global
 
-data_inicio = "2024-06-01"
-data_final= "2024-06-30"
+data_inicio = "2024-07-01"
+data_final= "2024-07-31"
 
 try:
     db_connection = mysql.connector.connect(**db_config)
@@ -67,8 +68,6 @@ try:
 
         cod_escritorio_atual = None
         doc = None  
-        contador_global = 0  #contador global
-
         processos_dict = {}
 
         for idx, result in enumerate(results):
@@ -83,7 +82,6 @@ try:
                     doc = None
 
                     # Incremento do contador global
-                    contador_global += contador_local
                     contador_local = 0  # Reinicialize o contador local para o próximo CodEscritorio
 
                 # Atualize a variável para o CodEscritorio atual
@@ -142,13 +140,13 @@ try:
                     "LEFT JOIN apidistribuicao.processo_reu AS r ON p.ID_processo = r.ID_processo " 
                     "LEFT JOIN apidistribuicao.processo_docinicial AS l ON p.ID_processo = l.ID_processo "
                     "WHERE p.deleted = 0 "
-                    "and p.data_insercao between %s and %s " 
+                    "and date(p.data_insercao) between %s and %s " 
                     "AND c.Cod_escritorio = %s "
                     "GROUP BY p.numero_processo, clienteVSAP, p.Cod_escritorio, p.uf;")
             
             db_cursor.execute(query2, (data_inicio, data_final, cod_escritorio))
             results_rows =db_cursor.fetchall()
-            
+
             # Corpo do e-mail
             email_template = (
                 "Cliente: {resultClient2} \n\n"
@@ -158,7 +156,8 @@ try:
 
             dados_formatados = ""
             contador_local += 1
-        
+            contador_global += 1  #contador global
+
             dados_formatados += f"Distribuição: {contador_local} de {len(results_rows)} \n\n\n"
             dados_formatados += f"Tribunal: {result[13]} \n\n"
             dados_formatados += f"UF/Instância/Comarca:    {result[10]}/{result[12]}/{result[11]} \n\n"
@@ -191,11 +190,10 @@ try:
             paragraph_atenciosamente = doc.add_paragraph(f"Data: {dataComBarra}")
             
             doc.save(caminho_arquivo_docx)
-            contador_global += contador_local  # Incremento final do contador global
 
+        print(f"Total de Distribuições: {contador_local} para o cliente: {element_to_process}")
 
-
-        print(f"Total de Distribuições: {contador_global} para o cliente: {element_to_process}")
+    print (f"total geral de distribuições: {contador_global}")
 
 except NameError:
     print("NOME NÃO ENCONTRADO NO BANCO DE DADOS")
