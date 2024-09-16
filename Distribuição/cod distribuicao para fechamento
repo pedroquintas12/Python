@@ -23,8 +23,8 @@ nomeDoArquivoDocx = (data_formatada + "-" + "distribuição.docx")
 FechamentoMes = (data_formatada +"-"+"FechamentoDoMes" )
 contador_global = 0  #contador global
 
-data_inicio = "2024-07-01"
-data_final= "2024-07-31"
+data_inicio = "2024-09-09"
+data_final= "2024-09-09"
 
 try:
     db_connection = mysql.connector.connect(**db_config)
@@ -92,7 +92,7 @@ try:
 
                 # Crie um novo arquivo Word para o CodEscritorio atual
                 caminho_arquivo_docx = os.path.join(
-                    "C:\\Users\\pedro\\OneDrive - LIG CONTATO DIÁRIO FORENSE\\DISTRIBUIÇÃO\\ARQUIVOS WORD DISTRIBUIÇÕES\\",
+                    "C:\\Users\\pedro\\OneDrive - LIG CONTATO DIÁRIO FORENSE\\DISTRIBUIÇÃO\\ARQUIVOS WORD DISTRIBUIÇÕES\\FECHAMENTOS",
                     f"{FechamentoMes}-{element_to_process}.docx"
                 )
                 TextCodClient = f"Código Escritório:  {result[1]}"

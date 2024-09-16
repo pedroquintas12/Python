@@ -23,7 +23,7 @@ contador_global = 0
 try:
     db_connection = mysql.connector.connect(**db_config)
     db_cursor = db_connection.cursor()
-
+ 
     query_cod_escritorio = (
         "SELECT cod_escritorio FROM processo "
         "WHERE DATE(data_insercao) = %s "
