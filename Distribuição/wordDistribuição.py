@@ -14,11 +14,11 @@ db_config = {
     'password': '123456',
     'database': 'apidistribuicao'
 }
-
 data_do_dia = datetime.now()
 data_formatada = data_do_dia.strftime('%Y-%m-%d')
 nomeDoArquivoDocx = f"{data_formatada}-distribuição.docx"
-contador_global = 0  
+contador_global = 0 
+contador_escritorio = 0 
 
 try:
     db_connection = mysql.connector.connect(**db_config)
@@ -38,6 +38,7 @@ try:
         exit()
 
     for cod_escritorio in cod_escritorios:
+        contador_escritorio += 1
         query = (
             "SELECT c.Cliente_VSAP as clienteVSAP, p.Cod_escritorio, p.numero_processo, "
             "MAX(p.data_distribuicao) as data_distribuicao, "
@@ -45,7 +46,7 @@ try:
             "GROUP_CONCAT(DISTINCT a.nome ORDER BY a.nome SEPARATOR ', ') AS nomesAutores, "
             "GROUP_CONCAT(DISTINCT r.nome ORDER BY r.nome SEPARATOR ', ') AS nomesReus, "
             "GROUP_CONCAT(distinct l.link_documento order by l.link_documento separator ' | ') as Link, "
-            "p.uf, p.sigla_sistema, MAX(p.instancia), p.tribunal "
+            "p.uf, p.sigla_sistema, MAX(p.instancia), p.tribunal, MAX(p.ID_processo) "
             "FROM apidistribuicao.processo AS p "
             "LEFT JOIN apidistribuicao.clientes AS c ON p.Cod_escritorio = c.Cod_escritorio "
             "LEFT JOIN apidistribuicao.processo_autor AS a ON p.ID_processo = a.ID_processo "
@@ -68,7 +69,6 @@ try:
         for idx, result in enumerate(results):
             cod_escritorio = result[1] 
             num_processo = result[2]  
-
             if cod_escritorio != cod_escritorio_atual:
                 if doc is not None:
                     doc.save(caminho_arquivo_docx)
@@ -135,11 +135,19 @@ try:
             db_cursor.execute(query2, (data_formatada, cod_escritorio_atual))
             results_rows = db_cursor.fetchall()
 
+            querylinks = ("SELECT * FROM apidistribuicao.processo_docinicial WHERE ID_PROCESSO = %s "
+                           "AND doc_peticao_inicial= 0  ")
+            db_cursor.execute(querylinks, (result[14],))
+            results_links = db_cursor.fetchall()
+
+            listaDeLinks= results_links
+
             email_template = (
                 "Cliente: {resultClient2} \n\n"
                 "Dados coletados:\n\n"
                 "{dados}\n\n"
             )
+        
 
             dados_formatados = ""
             contador_local += 1
@@ -162,8 +170,9 @@ try:
                 dados_formatados += f"Polo Passivo: {', '.join(filter(None, processos_dict[num_processo]['nomeReu']))}\n\n"
             else:
                 dados_formatados += "Polo Passivo: [Nenhum dado disponível]\n\n"       
-            
-            dados_formatados += f"Link: {result[9]}\n\n"
+
+            for listaDeLinks in listaDeLinks:
+                dados_formatados += f"Link({listaDeLinks[3]}): {listaDeLinks[2]}\n\n"
 
             email_texto = email_template.format(data=data_do_dia.strftime('%d/%m/%y'),
                                                 dados=dados_formatados, resultClient2=element_to_process)
@@ -178,8 +187,10 @@ try:
             
             doc.save(caminho_arquivo_docx)
 
+
         print(f"Total de Distribuições para {element_to_process}:\n {contador_local}")
     print(f"Total geral de distribuições: {contador_global}")
+    print(f"Total de escritorios: {contador_escritorio}")
 
-except NameError:
-    print("NOME NÃO ENCONTRADO NO BANCO DE DADOS")
+except mysql.connector.Error as err:
+    print(f"ERRO NO BANCO DE DADOS: {err}")

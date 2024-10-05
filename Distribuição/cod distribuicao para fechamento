@@ -22,9 +22,11 @@ nomeDoArquivo = (data_formatada + "-" + "impressao.xls")
 nomeDoArquivoDocx = (data_formatada + "-" + "distribuição.docx")
 FechamentoMes = (data_formatada +"-"+"FechamentoDoMes" )
 contador_global = 0  #contador global
+contador_escritorio = 0 
 
-data_inicio = "2024-09-09"
-data_final= "2024-09-09"
+
+data_inicio = "2024-09-01"
+data_final= "2024-09-30"
 
 try:
     db_connection = mysql.connector.connect(**db_config)
@@ -44,6 +46,7 @@ try:
         exit()
 
     for cod_escritorio in cod_escritorios:
+        contador_escritorio += 1
         query = (
           "SELECT c.Cliente_VSAP as clienteVSAP, p.Cod_escritorio, p.numero_processo, "
             "MAX(p.data_distribuicao) as data_distribuicao, "
@@ -194,6 +197,8 @@ try:
         print(f"Total de Distribuições: {contador_local} para o cliente: {element_to_process}")
 
     print (f"total geral de distribuições: {contador_global}")
+    print(f"Total de escritorios: {contador_escritorio}")
+
 
 except NameError:
     print("NOME NÃO ENCONTRADO NO BANCO DE DADOS")

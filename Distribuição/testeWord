@@ -1,0 +1,213 @@
+import re
+from datetime import datetime
+import mysql.connector
+import os
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
+# Configuração do banco de dados
+db_config = {
+    'host': '26.191.28.12',
+    'port': '3306',
+    'user': 'pedro',
+    'password': '123456',
+    'database': 'apidistribuicao'
+}
+
+# Configurações do email
+email_sender = 'pedroquintas1213@gmail.com'  # Substitua pelo seu email
+email_password = 'tgnf ctmd beie szjq'  # Substitua pela sua senha
+email_receiver = 'ligcontatopedro1@gmail.com'  # Substitua pelo destinatário
+
+data_do_dia = datetime.now()
+data_formatada = data_do_dia.strftime('%Y-%m-%d')
+
+try:
+    db_connection = mysql.connector.connect(**db_config)
+    db_cursor = db_connection.cursor()
+
+    query_cod_escritorio = (
+        "SELECT cod_escritorio FROM processo "
+        "WHERE DATE(data_insercao) = %s "
+        "GROUP BY cod_escritorio"
+    )
+    db_cursor.execute(query_cod_escritorio, (data_formatada,))
+    cod_escritorios = db_cursor.fetchall()
+    cod_escritorios = [row[0] for row in cod_escritorios]
+
+    if not cod_escritorios:
+        print("Nenhum código de escritório encontrado para a data especificada.")
+        exit()
+
+    # Dicionário para armazenar os dados agrupados por cliente
+    clientes_data = {}
+
+    for cod_escritorio in cod_escritorios:
+        query = (
+            "SELECT c.Cliente_VSAP as clienteVSAP, p.Cod_escritorio, p.numero_processo, "
+            "MAX(p.data_distribuicao) as data_distribuicao, "
+            "p.orgao_julgador, p.tipo_processo, p.status, "
+            "GROUP_CONCAT(DISTINCT a.nome ORDER BY a.nome SEPARATOR ', ') AS nomesAutores, "
+            "GROUP_CONCAT(DISTINCT r.nome ORDER BY r.nome SEPARATOR ', ') AS nomesReus, "
+            "GROUP_CONCAT(distinct l.link_documento order by l.link_documento separator ' | ') as Link, "
+            "p.uf, p.sigla_sistema, MAX(p.instancia), p.tribunal, MAX(p.ID_processo) "
+            "FROM apidistribuicao.processo AS p "
+            "LEFT JOIN apidistribuicao.clientes AS c ON p.Cod_escritorio = c.Cod_escritorio "
+            "LEFT JOIN apidistribuicao.processo_autor AS a ON p.ID_processo = a.ID_processo "
+            "LEFT JOIN apidistribuicao.processo_reu AS r ON p.ID_processo = r.ID_processo "
+            "LEFT JOIN apidistribuicao.processo_docinicial as l ON p.ID_processo = l.ID_processo "
+            "WHERE DATE(p.data_insercao) = %s "
+            "AND l.doc_peticao_inicial = 0 "
+            "AND p.Cod_escritorio = %s "
+            "AND p.status = 'S' "
+            "GROUP BY p.numero_processo, clienteVSAP, p.Cod_escritorio, p.orgao_julgador, p.tipo_processo, p.uf, p.sigla_sistema, p.tribunal;"
+        )
+
+        db_cursor.execute(query, (data_formatada, cod_escritorio))
+        results = db_cursor.fetchall()
+
+        querylinks = ("SELECT * FROM apidistribuicao.processo_docinicial WHERE ID_PROCESSO = %s "
+                           "AND doc_peticao_inicial= 0  ")
+        db_cursor.execute(querylinks, (result[14],))
+        results_links = db_cursor.fetchall()
+
+        for result in results:
+            clienteVSAP = result[0]
+            num_processo = result[2]
+            data_distribuicao = datetime.strptime(str(result[3]), '%Y-%m-%d').strftime('%d/%m/%Y')
+            tribunal = result[13]
+            uf = result[10]
+            instancia = result[12]
+            comarca = result[11]
+            polo_ativo = result[7] if result[7] else "[Nenhum dado disponível]"
+            polo_passivo = result[8] if result[8] else "[Nenhum dado disponível]"
+            for links in results_links:
+                link = link[0]
+
+
+            # Adiciona os dados do processo ao dicionário de clientes
+            if clienteVSAP not in clientes_data:
+                clientes_data[clienteVSAP] = []
+            
+            clientes_data[clienteVSAP].append({
+                'numero_processo': num_processo,
+                'data_distribuicao': data_distribuicao,
+                'orgao': result[4],
+                'classe_judicial': result[5],
+                'polo_ativo': polo_ativo,
+                'polo_passivo': polo_passivo,
+                'links': links
+            })
+
+    # Envio de email para cada cliente com todos os seus processos
+    for cliente, processos in clientes_data.items():
+        email_body = ""
+        total_processos = len(processos)  # Total de processos para o cliente
+
+        for idx, processo in enumerate(processos, start=1):  # Contador começando de 1
+            email_body += f"""
+                <div class="processo">
+                    <p><strong>Processo {idx} de {total_processos}</strong></p>  <!-- Contador -->
+                    <p><strong>Dados coletados:</strong></p>
+
+                    <p>Número do Processo: {processo['numero_processo']}</p>
+                    <p>Data de Distribuição: {processo['data_distribuicao']}</p>
+                    <p>Órgão: {processo['orgao']}</p>
+                    <p>Classe Judicial: {processo['classe_judicial']}</p>
+                    <p>Polo Ativo: {processo['polo_ativo']}</p>
+                    <p>Polo Passivo: {processo['polo_passivo']}</p>
+                    <div class="links">
+                       
+            """
+            for link in processo['links']:
+                email_body+=  f"<p><strong>Links({link[1]})</strong></p>"
+                email_body += f'<p><a href="{link}">{link}</a></p>'
+            email_body += "</div></div>"
+
+        email_body = f"""
+        <!DOCTYPE html>
+        <html lang="pt-BR">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Distribuição de Processos</title>
+            <style>
+                body {{
+                    font-family: Arial, sans-serif; 
+                    margin: 0; 
+                    padding: 0; 
+                    background-color: #f4f4f4; 
+                    color: #333; 
+                    line-height: 1.6; 
+                }}
+                .container {{
+                    padding: 20px; 
+                    background-color: #fff; 
+                    margin: 20px; 
+                    border-radius: 5px; 
+                    box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
+                }}
+                h1 {{
+                    color: #4a90e2; 
+                }}
+                .processo {{
+                    border: 1px solid #ccc; 
+                    border-radius: 5px; 
+                    padding: 10px; 
+                    margin-bottom: 20px; 
+                }}
+                .links {{
+                    margin-top: 10px; 
+                }}
+                .footer {{
+                    margin-top: 20px; 
+                    font-style: italic; 
+                }}
+                .alert {{
+                    background-color: #f8d7da; 
+                    border-color: #f5c6cb; 
+                    color: #721c24; 
+                    padding: 10px; 
+                    border-radius: 5px; 
+                    margin-bottom: 20px; 
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="alert">
+                    *Atenção* Esta mensagem pode conter mais conteúdo no corpo do e-mail, portanto verifique no final da mensagem se existe a opção de "Exibir toda a mensagem" para visualizar mais conteúdo.
+                </div>
+                <h1>{cliente}</h1>
+                {email_body}
+                <div class="footer">
+                    <p>Atenciosamente,</p>
+                    <p>Lig Contato</p>
+                    <p>Data: {data_do_dia.strftime('%d/%m/%Y')}</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+
+        # Envio do email
+        msg = MIMEMultipart()
+        msg['From'] = email_sender
+        msg['To'] = email_receiver  # Aqui, você pode modificar para enviar para um email específico do cliente se disponível
+        msg['Subject'] = f'LIGCONTATOS - DISTRIBUIÇÕES {data_formatada} - {cliente}'
+        
+        msg.attach(MIMEText(email_body, 'html'))
+
+        with smtplib.SMTP('smtp.gmail.com', 587) as server:  # Substitua pelo servidor SMTP que você usar
+            server.starttls()
+            server.login(email_sender, email_password)
+            server.send_message(msg)
+
+    db_cursor.close()
+    db_connection.close()
+
+except mysql.connector.Error as err:
+    print(f"Erro no MySQL: {err}")
+except Exception as e:
+    print(f"Um erro ocorreu: {e}")

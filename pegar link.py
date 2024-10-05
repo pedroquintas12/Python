@@ -1,3 +1,4 @@
+import re
 import requests
 from bs4 import BeautifulSoup
 from flask import Flask, request
@@ -6,17 +7,17 @@ import time
 
 app = Flask(__name__)
 
-def baixar_pdf(pdf_url, pdf_path):
+def baixar_csv(csv_url, csv_path):
     tentativas = 5
     while tentativas > 0:
         try:
-            with open(pdf_path, "wb") as pdf_file:
-                pdf_response = requests.get(pdf_url)
-                pdf_file.write(pdf_response.content)
-            print(f"PDF {pdf_url} baixado com sucesso.")    
+            with open(csv_path, "wb") as csv_file:
+                csv_response = requests.get(csv_url)
+                csv_file.write(csv_response.content)
+            print(f"CSV {csv_url} baixado com sucesso.")    
             return True
         except Exception as e:
-            print(f"Erro ao baixar o PDF {pdf_path}: {e}")
+            print(f"Erro ao baixar o CSV {csv_path}: {e}")
             tentativas -= 1
             if tentativas > 0:
                 print("Tentando novamente...")
@@ -29,49 +30,52 @@ def extrair_links_da_pagina(url):
     if response.status_code == 200:
         soup = BeautifulSoup(response.content, "html.parser")
         
-        links = soup.find_all("a", class_="summary url")
-        if not links:
-            # Se não encontrar, tentar encontrar os links com a classe "state-missing-value url"
-            links = soup.find_all("a", class_="state-missing-value url")
+        # Encontrar todos os links com a classe "resource-url-analytics"
+        links = soup.find_all("a", class_="resource-url-analytics")
         
-        return [link.get("href").replace("/view", "") for link in links]
+        if not links:
+            print("Nenhum link encontrado com a classe fornecida.")
+        
+        csv_links = [link.get("href") for link in links if link.get("href") and link.get("href").endswith("/dados?formato=csv")]
+        
+        return csv_links
     else:
         return None
 
+def limpar_nome_arquivo(nome):
+    nome_limpo = re.sub(r'[<>:"/\\|?*]', '_', nome)
+    return nome_limpo
+
 @app.route('/')
-def extrair_links_e_baixar_pdfs():
+def extrair_links_e_baixar_csvs():
     url = request.args.get('url')
     
-    response = requests.get(url)
+    pasta_csvs = r"C:\Users\pedro\OneDrive\Documentos\teste csv"
 
-    pasta_pdfs = r"C:\Users\pedro\OneDrive - LIG CONTATO DIÁRIO FORENSE\PDFS PARAIBA"
-
-    if response.status_code == 200:
-        soup = BeautifulSoup(response.content, "html.parser")
-        
-        next_page_link = soup.find("a", class_="proximo")
-        
-        links = extrair_links_da_pagina(url)
-        
-        if next_page_link:
-            print("2 pagina")
-            next_page_url = next_page_link.get("href")
-            next_page_links = extrair_links_da_pagina(next_page_url)
-            if next_page_links:
-                links.extend(next_page_links)
-        
-        if not os.path.exists("pdfs"):
-            os.makedirs("pdfs")
+    links = extrair_links_da_pagina(url)
+    
+    if links:
+        if not os.path.exists(pasta_csvs):
+            os.makedirs(pasta_csvs)
         
         for link in links:
-            pdf_name = link.split("/")[-1]
-            pdf_path = os.path.join(pasta_pdfs, pdf_name)
-            if not baixar_pdf(link, pdf_path):
-                return {'error': f'Erro ao baixar o PDF {pdf_name}'}
+            if not link.startswith("http"):
+                link = f"https://api.bcb.gov.br{link}"
+            
+            csv_name = limpar_nome_arquivo(link.split("/")[-1])
+            
+            if not csv_name.endswith(".csv"):
+                csv_name += ".csv"
+            
+            csv_path = os.path.join(pasta_csvs, csv_name)
+            
+            # Baixar o arquivo CSV
+            if not baixar_csv(link, csv_path):
+                return {'error': f'Erro ao baixar o CSV {csv_name}'}
         
-        return {'message': 'PDFs baixados com sucesso na pasta "pdfs"'}
+        return {'message': 'CSVs baixados com sucesso na pasta "csv"'}
     else:
-        return {'error': 'Erro ao fazer a requisição: {}'.format(response.status_code)}
+        return {'error': 'Erro ao extrair os links ou página inválida'}
 
 if __name__ == '__main__':
     app.run(debug=True)
