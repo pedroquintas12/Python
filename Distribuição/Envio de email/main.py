@@ -34,7 +34,8 @@ def main():
     for cliente ,processos in clientes_data.items():
         localizador = str(uuid.uuid4()) 
         email_body = generate_email_body(cliente, processos, logo, localizador, data_do_dia)
-        email_receiver= processos[0]['emails']
+        email_receiver = "pedroquintas1213@gmail.com"
+        #email_receiver= processos[0]['emails']
         bcc_receivers = ""  
         subject = f"LIGCONTATO - DISTRIBUIÇÃO {data_do_dia.strftime('%d/%m/%y')} - {cliente}"
 
