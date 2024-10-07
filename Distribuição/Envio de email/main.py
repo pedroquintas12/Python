@@ -7,21 +7,18 @@ import mysql.connector
 import uuid
 import time
 import schedule
+from logger_config import logger
+
 
 def enviar_emails():
+
+    
     data_do_dia = datetime.now()
 
     # Busca os dados dos clientes e processos
     clientes_data = fetch_processes_and_clients()
-
-    # Calcula o total de escritórios e total de processos por escritório
-    total_escritorios = len(clientes_data)  # Total de escritórios
+    total_escritorios = len(clientes_data)  
     total_processos_por_escritorio = {cliente: len(processos) for cliente, processos in clientes_data.items()}
-
-    # Exibe os totais
-    print(f"Total de escritórios a serem enviados: {total_escritorios}")
-    for cliente, total_processos in total_processos_por_escritorio.items():
-        print(f"Escritório: {cliente} - Total de processos: {total_processos}")
 
     try:
         db_connection = get_db_connection()
@@ -35,14 +32,14 @@ def enviar_emails():
         if smtp_config:
             smtp_host, smtp_port, smtp_user, smtp_password,smtp_from_email,smtp_from_name,smtp_reply_to,smtp_cc_emails,smtp_bcc_emails,logo = smtp_config
         else:
-            print("Configuração SMTP não encontrada.")
+            logger.warning("Configuração SMTP não encontrada.")
             exit()
     except mysql.connector.Error as err:
-        print(f"Erro ao conectar ao banco de dados: {err}")
+        logger.error(f"Erro ao conectar ao banco de dados: {err}")
         exit()
 
     # Configuração do SMTP
-    smtp_config = (smtp_host, smtp_port, smtp_user, smtp_password,smtp_from_email,smtp_from_name,smtp_reply_to,smtp_cc_emails,logo)
+    smtp_config = (smtp_host, smtp_port, smtp_user, smtp_password,smtp_from_email,smtp_from_name,smtp_reply_to,smtp_cc_emails,smtp_bcc_emails,logo)
 
     for cliente, processos in clientes_data.items():
         localizador = str(uuid.uuid4()) 
@@ -66,13 +63,14 @@ def enviar_emails():
                       data_do_dia.strftime('%Y-%m-%d'), localizador, email_receiver, datetime.now()))
 
             db_connection.commit()  # Commit all changes
-            print(f"E-mail enviado para {cliente} {datetime.now().strftime('%H:%M')}.")
+            for cliente, total_processos in total_processos_por_escritorio.items():
+                logger.info(f"E-mail enviado para {cliente} AS {datetime.now().strftime('%H:%M:%S')} - total: {total_processos.items}.")
 
         except mysql.connector.Error as err:
-            print(f"Erro ao atualizar o status ou registrar o envio: {err}")
+            logger.error(f"Erro ao atualizar o status ou registrar o envio: {err}")
 
 #Agenda o envio para todos os dias às 16:00
-schedule.every().day.at("16:00").do(enviar_emails)
+schedule.every().day.at("16:16").do(enviar_emails)
 
 if __name__ == "__main__":
 
@@ -84,9 +82,8 @@ if __name__ == "__main__":
         total_processos_por_escritorio = {cliente: len(processos) for cliente, processos in clientes_data.items()}
 
             # Atualiza a exibição
-        print(f"\nAguardando o horário de envio... (Atualizado: {datetime.now().strftime('%d-%m-%y %H:%M')})")
-        print(f"Total de escritórios a serem enviados: {total_escritorios}")
+        logger.info(f"\nAguardando o horário de envio... (Atualizado: {datetime.now().strftime('%d-%m-%y %H:%M')})")
+        logger.info(f"Total de escritórios a serem enviados: {total_escritorios}")
         for cliente, total_processos in total_processos_por_escritorio.items():
-            print(f"Escritório: {cliente} - Total de processos: {total_processos}")
-
-        time.sleep(3600)  # Verifica a cada hora
+            logger.info(f"Escritório: {cliente} - Total de processos: {total_processos}")
+        time.sleep(10)

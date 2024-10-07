@@ -2,8 +2,12 @@ import uuid
 from datetime import datetime
 from db_conexão import get_db_connection
 import mysql.connector
+import logging
+from logger_config import logger
 
 def fetch_processes_and_clients():
+
+
     db_connection = get_db_connection()
     db_cursor = db_connection.cursor()
 
@@ -37,7 +41,7 @@ def fetch_processes_and_clients():
         return clientes_data
 
     except mysql.connector.Error as err:
-        print(f"Erro ao executar a consulta: {err}")
+        logger.error(f"Erro ao executar a consulta: {err}")
         return {}
     finally:
         db_cursor.close()
