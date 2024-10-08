@@ -66,7 +66,7 @@ def enviar_emails():
         try:
             for processo in processos:
                 processo_id = processo['ID_processo']  
-                #db_cursor.execute("UPDATE processo SET status = 'S' WHERE ID_processo = %s", (processo_id,))
+                db_cursor.execute("UPDATE processo SET status = 'S' WHERE ID_processo = %s", (processo_id,))
                 db_cursor.execute("""INSERT INTO envio_emails (ID_processo, numero_processo, 
                                   cod_escritorio, localizador_processo, data_envio, localizador, email_envio, data_hora_envio)
                                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
