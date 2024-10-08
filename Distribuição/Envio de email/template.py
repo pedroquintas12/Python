@@ -119,9 +119,9 @@ def generate_email_body(cliente, processos, logo, localizador, data_do_dia):
                     <img src="{logo}" alt="Logo">
                     <div>
                         <h1>{cliente}</h1>
-                        <span>Data: {data_do_dia.strftime('%d/%m/%y')}</span>
-                        <span>Localizador: {localizador}</span>
-                        <span>Total Distribuições: {total_processos}</span>
+                        <p>Data: {data_do_dia.strftime('%d/%m/%y')}</p>
+                        <p>Localizador: {localizador}</p>
+                        <p>Total Distribuições: {total_processos}</p>
                     </div>
                 </div>
                 <div class="alert">
@@ -132,12 +132,12 @@ def generate_email_body(cliente, processos, logo, localizador, data_do_dia):
                 </div>
                 <!-- FOOTER -->
                 <div class="footer">
-                    <span>
+                    <p>
                         Esta mensagem constitui informação privilegiada e confidencial, legalmente
                         resguardada por segredo profissional, nos termos do art. 7º, inc. II, e ss. da lei nº 8.906/94,
                         referindo-se exclusivamente ao relacionamento pessoal e profissional entre o remetente e o
                         destinatário, sendo vedada a utilização, divulgação ou reprodução do seu conteúdo.
-                    </span>
+                    </p>
                 </div>
             </div>
         </body>
