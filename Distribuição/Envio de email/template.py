@@ -2,6 +2,9 @@ def generate_email_body(cliente, processos, logo, localizador, data_do_dia):
     email_body = ""
     total_processos = len(processos)
 
+    
+    exibir_max = 1
+
     for idx, processo in enumerate(processos, start=1):
         email_body += f"""
             <div class="processo">
@@ -11,9 +14,27 @@ def generate_email_body(cliente, processos, logo, localizador, data_do_dia):
                 <p>Número do Processo: {processo['numero_processo']}</p></br>
                 <p>Data de Distribuição: {processo['data_distribuicao']}</p></br>
                 <p>Órgão: {processo['orgao']}</p></br>
-                <p>Classe Judicial: {processo['classe_judicial']}</p></br>
-                <p>Polo Ativo: {processo['polo_ativo']}</p></br>
-                <p>Polo Passivo: {processo['polo_passivo']}</p></br>
+                <p>Classe Judicial: {processo['classe_judicial']}</p></br>"""
+        
+        autor_list = processo['autor']
+        total_autores = len(autor_list)
+        if total_autores > exibir_max:
+            autores_exibidos = ', '.join(autor['nomeAutor'] for autor in autor_list[:exibir_max])
+            email_body += f'<p>Polo Ativo: {autores_exibidos} (+{total_autores - exibir_max})</p></br>'
+        else:
+            autores_exibidos = ', '.join(autor['nomeAutor'] for autor in autor_list)
+            email_body += f'<p>Polo Ativo: {autores_exibidos}</p></br>'
+
+        # Processa réus
+        reu_list = processo['reu']
+        total_reus = len(reu_list)
+        if total_reus > exibir_max:
+            reus_exibidos = ', '.join(reu['nomeReu'] for reu in reu_list[:exibir_max])
+            email_body += f'<p>Polo Passivo: {reus_exibidos} (+{total_reus - exibir_max})</p></br>'
+        else:
+            reus_exibidos = ', '.join(reu['nomeReu'] for reu in reu_list)
+            email_body += f'<p>Polo Passivo: {reus_exibidos}</p></br>'
+        """    
                 <div class="links">
                     <p><strong>Links:</strong></p></br>
         """

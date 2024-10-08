@@ -55,12 +55,13 @@ def process_result(result, clientes_data):
     uf = result[10]
     instancia = result[12]
     comarca = result[11]
-    polo_ativo = result[7] if result[7] else "[Nenhum dado disponível]"
     polo_passivo = result[8] if result[8] else "[Nenhum dado disponível]"
     emails= result[17]
 
-    # Collect links for the process
+    # Collect for the process
     links_list = fetch_links(result[14])
+    autor_list = fetch_autor(result[14])
+    reu_list = fetch_reu(result[14])
 
     # Add process data to the clients' data
     if clienteVSAP not in clientes_data:
@@ -73,8 +74,8 @@ def process_result(result, clientes_data):
         'data_distribuicao': data_distribuicao,
         'orgao': result[4],
         'classe_judicial': result[5],
-        'polo_ativo': polo_ativo,
-        'polo_passivo': polo_passivo,
+        'autor': autor_list,
+        'reu': reu_list,
         'links': links_list,
         'tribunal': tribunal,
         'uf': uf,
@@ -98,9 +99,54 @@ def fetch_links(process_id):
         id_link = links[1]
         link_doc = links[2]
         tipoLink = links[3]
-        links_list.append({'link_doc': link_doc, 'tipoLink': tipoLink, 'id_link': id_link})
+        links_list.append({'link_doc': link_doc,
+                            'tipoLink': tipoLink,
+                              'id_link': id_link})
 
     db_cursor.close()
     db_connection.close()
 
     return links_list
+
+def fetch_autor(process_id):
+    db_connection = get_db_connection()
+    db_cursor = db_connection.cursor()
+    
+    queryautor = "SELECT * FROM apidistribuicao.processo_autor WHERE ID_processo = %s"
+    db_cursor.execute(queryautor, (process_id,))
+    results_autor = db_cursor.fetchall()
+
+    autor_list= []
+    for autores in results_autor:
+        ID_autor = autores[1]
+        Cod_Polo = autores[2]
+        nome = autores[3]
+        autor_list.append({'id_autor':ID_autor,
+                           'cod_polo':Cod_Polo,
+                           'nomeAutor':nome})
+    db_cursor.close()
+    db_connection.close()
+
+    return autor_list
+
+
+def fetch_reu(process_id):
+    db_connection = get_db_connection()
+    db_cursor = db_connection.cursor()
+    
+    queryreu = "SELECT * FROM apidistribuicao.processo_reu WHERE ID_processo = %s"
+    db_cursor.execute(queryreu, (process_id,))
+    results_reu = db_cursor.fetchall()
+
+    reu_list = []
+    for reus in results_reu:
+        ID_reu= reus[1]
+        Cod_polo = reus[2]
+        nome = reus[3]
+        reu_list.append({'id_reu': ID_reu,
+                         'cod_polo': Cod_polo,
+                         'nomeReu':nome})
+    db_cursor.close()
+    db_connection.close()
+
+    return reu_list
