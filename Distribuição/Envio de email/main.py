@@ -17,6 +17,7 @@ def enviar_emails():
 
     # Busca os dados dos clientes e processos
     clientes_data = fetch_processes_and_clients()
+
     total_escritorios = len(clientes_data)  
     total_processos_por_escritorio = {cliente: len(processos) for cliente, processos in clientes_data.items()}
 
@@ -55,9 +56,9 @@ def enviar_emails():
 
         localizador = str(uuid.uuid4()) 
         email_body = generate_email_body(cliente, processos, logo, localizador, data_do_dia)
-        email_receiver= processos[0]['emails']
-        bcc_receivers = smtp_bcc_emails 
-        cc_receiver = smtp_cc_emails
+        email_receiver= "pedroquintas1213@gmail.com"
+        bcc_receivers = "pedroquintas14@gmail.com" 
+        cc_receiver = "ligcontatopedro1@gmail.com"
         subject = f"LIGCONTATO - DISTRIBUIÇÃO {data_do_dia.strftime('%d/%m/%y')} - {cliente}"
 
         # Envia o e-mail
@@ -95,18 +96,20 @@ def Atualizar_lista_pendetes():
 
 
 #atualiza a lista de pendentes:
-schedule.every(30).minutes.do(Atualizar_lista_pendetes)
+#schedule.every(30).minutes.do(Atualizar_lista_pendetes)
 
  #Agenda o envio para todos os dias às 16:00
-schedule.every().day.at("16:00").do(enviar_emails)
+#schedule.every().day.at("16:00").do(enviar_emails)
 
 if __name__ == "__main__":
 
-    Atualizar_lista_pendetes()
+    enviar_emails()
+
+    # Atualizar_lista_pendetes()
     
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
+    # while True:
+    #     schedule.run_pending()
+    #     time.sleep(1)
 
     
 
