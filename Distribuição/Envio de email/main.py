@@ -63,27 +63,39 @@ def enviar_emails():
                       data_do_dia.strftime('%Y-%m-%d'), localizador, email_receiver, datetime.now()))
 
             db_connection.commit()  # Commit all changes
-            for cliente, total_processos in total_processos_por_escritorio.items():
-                logger.info(f"E-mail enviado para {cliente} AS {datetime.now().strftime('%H:%M:%S')} - total: {total_processos.items}.")
-
+   
         except mysql.connector.Error as err:
             logger.error(f"Erro ao atualizar o status ou registrar o envio: {err}")
 
+    for cliente, total_processos in total_processos_por_escritorio.items():
+        logger.info(f"\nE-mail enviado para {cliente} AS {datetime.now().strftime('%H:%M:%S')} - total: {total_processos}.")
+
+def Atualizar_lista_pendetes():
+    
+        clientes_data = fetch_processes_and_clients()
+        total_escritorios = len(clientes_data)  
+        total_processos_por_escritorio = {cliente: len(processos) for cliente, processos in clientes_data.items()}
+        # Atualiza a exibição
+        logger.info(f"\nAguardando o horário de envio... (Atualizado: {datetime.now().strftime('%d-%m-%y %H:%M')})")
+        logger.info(f"Total de escritórios a serem enviados: {total_escritorios}")
+        for cliente, total_processos in total_processos_por_escritorio.items():
+            logger.info(f"Escritório: {cliente} - Total de processos: {total_processos}")
+
+
+
+#atualiza a lista de pendentes:
+schedule.every(30).minutes.do(Atualizar_lista_pendetes)
+
 #Agenda o envio para todos os dias às 16:00
-schedule.every().day.at("16:16").do(enviar_emails)
+schedule.every().day.at("16:00").do(enviar_emails)
 
 if __name__ == "__main__":
 
     while True:
         schedule.run_pending()
-            # A cada hora, recalcula os totais e exibe na tela
-        clientes_data = fetch_processes_and_clients()
-        total_escritorios = len(clientes_data)  
-        total_processos_por_escritorio = {cliente: len(processos) for cliente, processos in clientes_data.items()}
+        time.sleep(1)
 
-            # Atualiza a exibição
-        logger.info(f"\nAguardando o horário de envio... (Atualizado: {datetime.now().strftime('%d-%m-%y %H:%M')})")
-        logger.info(f"Total de escritórios a serem enviados: {total_escritorios}")
-        for cliente, total_processos in total_processos_por_escritorio.items():
-            logger.info(f"Escritório: {cliente} - Total de processos: {total_processos}")
-        time.sleep(10)
+    
+
+
+
