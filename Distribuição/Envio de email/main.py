@@ -56,10 +56,10 @@ def enviar_emails():
 
         localizador = str(uuid.uuid4()) 
         email_body = generate_email_body(cliente, processos, logo, localizador, data_do_dia)
-        email_receiver= "pedroquintas1213@gmail.com"
-        bcc_receivers = "pedroquintas14@gmail.com" 
-        cc_receiver = "ligcontatopedro1@gmail.com"
-        subject = f"LIGCONTATO - DISTRIBUIÇÃO {data_do_dia.strftime('%d/%m/%y')} - {cliente}"
+        email_receiver= processos[0]['emails']
+        bcc_receivers = smtp_bcc_emails
+        cc_receiver = smtp_cc_emails
+        subject = f"LIGCONTATO - DISTRIBUIÇÕES {data_do_dia.strftime('%d/%m/%y')} - {cliente}"
 
         # Envia o e-mail
         send_email(smtp_config, email_body, email_receiver, bcc_receivers,cc_receiver, subject)
@@ -80,6 +80,7 @@ def enviar_emails():
             logger.error(f"Erro ao atualizar o status ou registrar o envio: {err}")
 
     for cliente, total_processos in total_processos_por_escritorio.items():
+        logger.info("ENVIANDO EMAIL:\n")
         logger.info(f"\nE-mail enviado para {cliente} AS {datetime.now().strftime('%H:%M:%S')} - total: {total_processos}.")
 
 def Atualizar_lista_pendetes():
@@ -96,20 +97,18 @@ def Atualizar_lista_pendetes():
 
 
 #atualiza a lista de pendentes:
-#schedule.every(30).minutes.do(Atualizar_lista_pendetes)
+schedule.every(30).minutes.do(Atualizar_lista_pendetes)
 
  #Agenda o envio para todos os dias às 16:00
-#schedule.every().day.at("16:00").do(enviar_emails)
+schedule.every().day.at("16:00").do(enviar_emails)
 
 if __name__ == "__main__":
 
-    enviar_emails()
-
-    # Atualizar_lista_pendetes()
+    Atualizar_lista_pendetes()
     
-    # while True:
-    #     schedule.run_pending()
-    #     time.sleep(1)
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
 
     
 
