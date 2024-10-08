@@ -42,6 +42,17 @@ def enviar_emails():
     smtp_config = (smtp_host, smtp_port, smtp_user, smtp_password,smtp_from_email,smtp_from_name,smtp_reply_to,smtp_cc_emails,smtp_bcc_emails,logo)
 
     for cliente, processos in clientes_data.items():
+
+        cod_cliente= processos[0]['cod_escritorio']
+
+        #faz a verficação se o cliente esta ativo (L) ou Bloqueado (B)
+        db_cursor.execute("SELECT status FROM clientes WHERE Cod_escritorio = %s",(cod_cliente,))
+        cliente_STATUS = db_cursor.fetchone()
+
+        if cliente_STATUS and cliente_STATUS[0] != 'L':
+            logger.warning(f"VSAP: {cod_cliente} Não esta ativo, email não enviado!")
+            continue
+
         localizador = str(uuid.uuid4()) 
         email_body = generate_email_body(cliente, processos, logo, localizador, data_do_dia)
         email_receiver= processos[0]['emails']
@@ -55,7 +66,7 @@ def enviar_emails():
         try:
             for processo in processos:
                 processo_id = processo['ID_processo']  
-                db_cursor.execute("UPDATE processo SET status = 'S' WHERE ID_processo = %s", (processo_id,))
+                #db_cursor.execute("UPDATE processo SET status = 'S' WHERE ID_processo = %s", (processo_id,))
                 db_cursor.execute("""INSERT INTO envio_emails (ID_processo, numero_processo, 
                                   cod_escritorio, localizador_processo, data_envio, localizador, email_envio, data_hora_envio)
                                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
@@ -86,11 +97,13 @@ def Atualizar_lista_pendetes():
 #atualiza a lista de pendentes:
 schedule.every(30).minutes.do(Atualizar_lista_pendetes)
 
-#Agenda o envio para todos os dias às 16:00
+ #Agenda o envio para todos os dias às 16:00
 schedule.every().day.at("16:00").do(enviar_emails)
 
 if __name__ == "__main__":
 
+    Atualizar_lista_pendetes()
+    
     while True:
         schedule.run_pending()
         time.sleep(1)
