@@ -18,7 +18,6 @@ def enviar_emails():
     # Busca os dados dos clientes e processos
     clientes_data = fetch_processes_and_clients()
 
-    total_escritorios = len(clientes_data)  
     total_processos_por_escritorio = {cliente: len(processos) for cliente, processos in clientes_data.items()}
 
     try:
