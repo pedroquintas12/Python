@@ -18,6 +18,8 @@ def enviar_emails():
     # Busca os dados dos clientes e processos
     clientes_data = fetch_processes_and_clients()
 
+    contador_Inativos = 0 
+
     total_escritorios = len(clientes_data)  
     total_processos_por_escritorio = {cliente: len(processos) for cliente, processos in clientes_data.items()}
 
@@ -52,6 +54,7 @@ def enviar_emails():
 
         if cliente_STATUS and cliente_STATUS[0] != 'L':
             logger.warning(f"VSAP: {cod_cliente} Não esta ativo, email não enviado!")
+            contador_Inativos += 1
             continue
 
         localizador = str(uuid.uuid4()) 
@@ -61,10 +64,13 @@ def enviar_emails():
         cc_receiver = "ligcontatopedro1@gmail.com"
         subject = f"LIGCONTATO - DISTRIBUIÇÃO {data_do_dia.strftime('%d/%m/%y')} - {cliente}"
 
-        # Envia o e-mail
-        send_email(smtp_config, email_body, email_receiver, bcc_receivers,cc_receiver, subject)
-
         try:
+        # Envia o e-mail
+            send_email(smtp_config, email_body, email_receiver, bcc_receivers,cc_receiver, subject)
+
+            logger.info(f"E-mail enviado para {cliente} às {datetime.now().strftime('%H:%M:%S')} - Total de processos: {len(processos)}\n---------------------------------------------------")
+
+        
             for processo in processos:
                 processo_id = processo['ID_processo']  
                 #db_cursor.execute("UPDATE processo SET status = 'S' WHERE ID_processo = %s", (processo_id,))
@@ -79,8 +85,7 @@ def enviar_emails():
         except mysql.connector.Error as err:
             logger.error(f"Erro ao atualizar o status ou registrar o envio: {err}")
 
-    for cliente, total_processos in total_processos_por_escritorio.items():
-        logger.info(f"\nE-mail enviado para {cliente} AS {datetime.now().strftime('%H:%M:%S')} - total: {total_processos}.")
+    logger.info(f"\nEnvio finalizado, total de escritorios enviados: {total_escritorios - contador_Inativos}")
 
 def Atualizar_lista_pendetes():
     
