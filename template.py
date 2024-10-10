@@ -7,39 +7,73 @@ def generate_email_body(cliente, processos, logo, localizador, data_do_dia):
     for idx, processo in enumerate(processos, start=1):
         email_body += f"""
             <div class="processo">
-                <span><strong>Distribuição {idx} de {total_processos}</strong></span>
-                <span>Tribunal: {processo['tribunal']}</span>
-                <span>UF/Instância/Comarca: {processo['uf']}/{processo['instancia']}/{processo['comarca']}</span>
-                <span>Número do Processo: {processo['numero_processo']}</span>
-                <span>Data de Distribuição: {processo['data_distribuicao']}</span>
-                <span>Órgão: {processo['orgao']}</span>
-                <span>Classe Judicial: {processo['classe_judicial']}</span>
+                <p>
+                    <span><strong>Distribuição {idx} de {total_processos}</strong></span>
+                </p>
+                <p>
+                    <span><strong>Tribunal: </span>
+                        <span>{processo['tribunal']}</span>
+                </p>
+                <p>
+                    <span><strong>UF/Instância/Comarca: </span>
+                        <span>{processo['uf']}/{processo['instancia']}/{processo['comarca']}</span>
+                </p>
+                <p>
+                    <span><strong>Número do Processo: </span>
+                        <span>{processo['numero_processo']}</span>
+                </p>
+                <p>
+                    <span><strong>Data de Distribuição: </span>
+                        <span>{processo['data_distribuicao']}</span>
+                </p>
+                    <span><strong>Órgão: </span>
+                        <span>{processo['orgao']}</span>
+                <p>
+                <span><strong>Classe Judicial:</span>
+                    <span>{processo['classe_judicial']}</span>
+                </p>
             """
         
         autor_list = processo['autor']
         total_autores = len(autor_list)
         if total_autores > exibir_max:
             autores_exibidos = ', '.join(autor['nomeAutor'] for autor in autor_list[:exibir_max])
-            email_body += f'<span>Polo Ativo: {autores_exibidos} (+{total_autores - exibir_max})</span>'
+            email_body += f"""  <p>
+                                    <span><strong>Polo Ativo: </span>
+                                        <span>{autores_exibidos} (+{total_autores - exibir_max})</span>
+                                </p>"""
         else:
             autores_exibidos = ', '.join(autor['nomeAutor'] for autor in autor_list)
-            email_body += f'<span>Polo Ativo: {autores_exibidos}</span>'
+            email_body += f"""  <p>
+                                    <span><strong>Polo Ativo: </span>
+                                        <span>{autores_exibidos}</span>
+                                </p>"""
         
         reu_list = processo['reu']
         total_reus = len(reu_list)
         if total_reus > exibir_max:
             reus_exibidos = ', '.join(reu['nomeReu'] for reu in reu_list[:exibir_max])
-            email_body += f'<span>Polo Passivo: {reus_exibidos} (+{total_reus - exibir_max})</span>'
+            email_body += f"""  <p>
+                                    <span><strong>Polo Passivo: </span>
+                                        <span>{reus_exibidos} (+{total_reus - exibir_max})</span>
+                                </p>"""
         else:
             reus_exibidos = ', '.join(reu['nomeReu'] for reu in reu_list)
-            email_body += f'<span>Polo Passivo: {reus_exibidos}</span>'
+            email_body += f"""<p>
+                                <span><strong>Polo Passivo: </span>
+                                    <span> {reus_exibidos}</span>
+                              </p>"""
             
         email_body += """
                     <div class="links">
-                        <span><strong>Links:</strong></span>
+                        <p>
+                            <span><strong>Links:</strong></span>
+                        </p>
             """
         for link_info in processo['links']:
-            email_body += f'<span>({link_info["tipoLink"]}): <a href="{link_info["link_doc"]}">{processo["tipo_processo"]}({link_info["id_link"]})</a></span>'
+            email_body += f"""<p>
+                                <span>({link_info["tipoLink"]}): <a href="{link_info["link_doc"]}">{processo["tipo_processo"]}({link_info["id_link"]})</a></span>
+                              </p>"""
         email_body += "</div></div>"
 
     email_body = f"""
@@ -88,7 +122,6 @@ def generate_email_body(cliente, processos, logo, localizador, data_do_dia):
                     background-color: #f9f9f9; 
                 }}
                 .processo span {{
-                    display: block;
                     margin: 5px 0;
                 }}
                 .links {{

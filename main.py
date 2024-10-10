@@ -15,10 +15,14 @@ def enviar_emails():
     
     data_do_dia = datetime.now()
 
+
     # Busca os dados dos clientes e processos
     clientes_data = fetch_processes_and_clients()
 
-    total_processos_por_escritorio = {cliente: len(processos) for cliente, processos in clientes_data.items()}
+    escritorios_invalidos =0
+
+
+    total_escritorios = len(clientes_data)  
 
     try:
         db_connection = get_db_connection()
@@ -51,6 +55,7 @@ def enviar_emails():
 
         if cliente_STATUS and cliente_STATUS[0] != 'L':
             logger.warning(f"VSAP: {cod_cliente} Não esta ativo, email não enviado!")
+            escritorios_invalidos += 1
             continue
 
         localizador = str(uuid.uuid4()) 
@@ -62,6 +67,8 @@ def enviar_emails():
 
         # Envia o e-mail
         send_email(smtp_config, email_body, email_receiver, bcc_receivers,cc_receiver, subject)
+
+        logger.info(f"E-mail enviado para {cliente} às {datetime.now().strftime('%H:%M:%S')} - Total de processos: {len(processos)}\n---------------------------------------------------")
 
         try:
             for processo in processos:
@@ -78,9 +85,7 @@ def enviar_emails():
         except mysql.connector.Error as err:
             logger.error(f"Erro ao atualizar o status ou registrar o envio: {err}")
 
-    for cliente, total_processos in total_processos_por_escritorio.items():
-        logger.info("ENVIANDO EMAIL:\n")
-        logger.info(f"\nE-mail enviado para {cliente} AS {datetime.now().strftime('%H:%M:%S')} - total: {total_processos}.")
+    logger.info(f"Envio finalizado, total de escritorios enviados: {total_escritorios - escritorios_invalidos}.")
 
 def Atualizar_lista_pendetes():
     
@@ -91,7 +96,8 @@ def Atualizar_lista_pendetes():
         logger.info(f"\nAguardando o horário de envio... (Atualizado: {datetime.now().strftime('%d-%m-%y %H:%M')})")
         logger.info(f"Total de escritórios a serem enviados: {total_escritorios}")
         for cliente, total_processos in total_processos_por_escritorio.items():
-            logger.info(f"Escritório: {cliente} - Total de processos: {total_processos}")
+            logger.info(f"Escritório: {cliente} - Total de processos: {total_processos}\n ----")
+        
 
 
 
